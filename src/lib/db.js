@@ -1,80 +1,96 @@
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
+// lib/db.js
+import { createClient } from "@supabase/supabase-js";
 
-// Open the database connection
-export async function openDb() {
-  return open({
-    filename: './my-database.db',
-    driver: sqlite3.Database,
-  });
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error("Missing Supabase environment variables!");
 }
 
-// Initialize the tables
-export async function initializeTables(db) {
-    await db.exec(`
-        CREATE TABLE IF NOT EXISTS books (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+// Create a singleton instance of the Supabase client
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-        about VARCHAR(255),
-        keypoints TEXT,
-        language VARCHAR(255),
-        idea TEXT,
-        plan TEXT,
-        toc TEXT,
+/**
+ * Initialize tables (only needed once, optionally done via Supabase SQL editor)
+ * You can run this once manually, or call it during setup.
+ */
+export async function initializeTables() {
+  const queries = [
+    // Books table
+    `
+    CREATE TABLE IF NOT EXISTS books (
+      id BIGSERIAL PRIMARY KEY,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
 
-        title VARCHAR(255),
-        tagline VARCHAR(255),
-        
-        content TEXT,
-        html TEXT,
-        contains_math INTEGER,
-        contains_code INTEGER,
-        intro_content TEXT,
-        intro_html TEXT,
+      about VARCHAR(255),
+      keypoints TEXT,
+      language VARCHAR(255),
+      idea TEXT,
+      plan TEXT,
+      toc TEXT,
 
-        credit NUMERIC,
-        cost NUMERIC,
+      title VARCHAR(255),
+      tagline VARCHAR(255),
 
-        category INTEGER,
-        model VARCHAR(255)
-        )
-    `);
+      content TEXT,
+      html TEXT,
+      contains_math BOOLEAN DEFAULT FALSE,
+      contains_code BOOLEAN DEFAULT FALSE,
+      intro_content TEXT,
+      intro_html TEXT,
 
-    await db.exec(`
-        CREATE TABLE IF NOT EXISTS chapters (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        book_id INTEGER,
-        title TEXT,
-        summary TEXT,
-        content TEXT,
-        html TEXT,
-        matter_type INTEGER,
-        FOREIGN KEY (book_id) REFERENCES books (id)
-        )
-    `);
+      credit NUMERIC,
+      cost NUMERIC,
 
-    await db.exec(`
-        CREATE TABLE IF NOT EXISTS chapter_rewrites (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        chapter_id INTEGER,
-        content TEXT,
-        html TEXT,
-        prompt TEXT,
-        credit NUMERIC,
-        cost NUMERIC,
-        is_active INTEGER,
-        FOREIGN KEY (chapter_id) REFERENCES chapters (id)
-        )
-    `);
-    
+      category INTEGER,
+      model VARCHAR(255)
+    );
+    `,
 
+    // Chapters table
+    `
+    CREATE TABLE IF NOT EXISTS chapters (
+      id BIGSERIAL PRIMARY KEY,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      book_id INTEGER,
+      title TEXT,
+      summary TEXT,
+      content TEXT,
+      html TEXT,
+      matter_type INTEGER,
 
-    // await db.exec(`ALTER TABLE books ADD credit INTEGER`);
-    // await db.exec(`ALTER TABLE chapter_rewrites ADD credit INTEGER`);
-    // await db.exec(`ALTER TABLE books ADD language VARCHAR(255)`);
-    // await db.exec(`ALTER TABLE books ADD intro_content TEXT`);
-    // await db.exec(`ALTER TABLE books ADD intro_html TEXT`);
+      CONSTRAINT fk_book
+        FOREIGN KEY(book_id)
+        REFERENCES books(id)
+        ON DELETE CASCADE
+    );
+    `,
+
+    // Chapter rewrites table
+    `
+    CREATE TABLE IF NOT EXISTS chapter_rewrites (
+      id BIGSERIAL PRIMARY KEY,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      chapter_id INTEGER,
+      content TEXT,
+      html TEXT,
+      prompt TEXT,
+      credit NUMERIC,
+      cost NUMERIC,
+      is_active BOOLEAN DEFAULT TRUE,
+
+      CONSTRAINT fk_chapter
+        FOREIGN KEY(chapter_id)
+        REFERENCES chapters(id)
+        ON DELETE CASCADE
+    );
+    `,
+  ];
+
+  // Note: Supabase doesn't allow DDL (CREATE TABLE) via client SDK
+  // You must run these queries in the Supabase SQL Editor (https://supabase.com/dashboard/project/YOUR_PROJECT/sql)
+  console.warn(
+    "⚠️ Run the above SQL in the Supabase SQL Editor. DDL queries are not allowed via client."
+  );
 }

@@ -1,47 +1,113 @@
-// /api/updatechapter.js
-import { openDb, initializeTables } from "../../lib/db";
+// /pages/api/updatechapter.js
+import { supabase } from "../../lib/db";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res
-      .status(200)
-      .json({ ok: false, status: 405, error: "Method not allowed" });
+    return res.status(405).json({
+      ok: false,
+      status: 405,
+      error: "Method not allowed",
+    });
   }
 
   try {
-    const requestData =
-      typeof req.body === "string" ? JSON.parse(req.body) : req.body;
-    const { apiKey, id, html, title } = requestData; // Extract apiKey (not used for DB operations)
+    const { id, title, html } = req.body;
 
-    const db = await openDb();
-    await initializeTables(db);
-
-    // Update the chapter title
-    await db.run("UPDATE chapters SET title = ? WHERE id = ?", [title, id]);
-
-    // Check if there are any active rewrites for this chapter
-    const activeRewrite = await db.get(
-      "SELECT 1 FROM chapter_rewrites WHERE chapter_id = ? AND is_active = 1",
-      [id]
-    );
-
-    if (activeRewrite) {
-      // If there is an active rewrite, update the chapter_rewrites table
-      await db.run(
-        "UPDATE chapter_rewrites SET html = ? WHERE chapter_id = ? AND is_active = 1",
-        [html, id]
-      );
-    } else {
-      // Otherwise, update the chapters table
-      await db.run("UPDATE chapters SET html = ? WHERE id = ?", [html, id]);
+    // Validate required fields
+    if (!id || !title || !html) {
+      return res.status(400).json({
+        ok: false,
+        status: 400,
+        error: "Chapter ID, title, and HTML are required",
+      });
     }
 
-    await db.close();
+    const chapterId = Number(id);
+    if (isNaN(chapterId)) {
+      return res.status(400).json({
+        ok: false,
+        status: 400,
+        error: "Invalid chapter ID",
+      });
+    }
 
-    return res.status(200).json({ ok: true, status: 200 });
+    // 1. Always update the chapter title
+    const { error: titleError } = await supabase
+      .from("chapters")
+      .update({ title })
+      .eq("id", chapterId);
+
+    if (titleError) {
+      console.error("Failed to update chapter title:", titleError);
+      return res.status(500).json({
+        ok: false,
+        status: 500,
+        error: "Failed to update chapter title",
+      });
+    }
+
+    // 2. Check if there is an active rewrite for this chapter
+    const { activeRewrites, error: queryError } = await supabase
+      .from("chapter_rewrites")
+      .select("id")
+      .eq("chapter_id", chapterId)
+      .eq("is_active", true)
+      .limit(1);
+
+    if (queryError) {
+      console.error("Error checking active rewrites:", queryError);
+      return res.status(500).json({
+        ok: false,
+        status: 500,
+        error: "Database error while checking rewrites",
+      });
+    }
+
+    // 3. Decide where to update the HTML
+    if (activeRewrites.length > 0) {
+      // Update the active rewrite record
+      const { error: rewriteError } = await supabase
+        .from("chapter_rewrites")
+        .update({ html })
+        .eq("chapter_id", chapterId)
+        .eq("is_active", true);
+
+      if (rewriteError) {
+        console.error("Failed to update active rewrite HTML:", rewriteError);
+        return res.status(500).json({
+          ok: false,
+          status: 500,
+          error: "Failed to update rewrite HTML",
+        });
+      }
+    } else {
+      // No active rewrite → update the chapters table directly
+      const { error: chapterHtmlError } = await supabase
+        .from("chapters")
+        .update({ html })
+        .eq("id", chapterId);
+
+      if (chapterHtmlError) {
+        console.error("Failed to update chapter HTML:", chapterHtmlError);
+        return res.status(500).json({
+          ok: false,
+          status: 500,
+          error: "Failed to update chapter HTML",
+        });
+      }
+    }
+
+    return res.status(200).json({
+      ok: true,
+      status: 200,
+      message: "Chapter updated successfully",
+    });
   } catch (error) {
-    return res
-      .status(200)
-      .json({ ok: false, status: 500, error: error.message });
+    console.error("Unexpected error in /api/updatechapter:", error);
+    return res.status(500).json({
+      ok: false,
+      status: 500,
+      error: "Internal server error",
+    });
   }
 }

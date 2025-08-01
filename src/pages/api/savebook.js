@@ -1,18 +1,19 @@
-// /api/savebook.js (Updated version)
-import { openDb, initializeTables } from "../../lib/db";
+// /pages/api/savebook.js
+import { supabase } from "../../lib/db";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res
-      .status(200)
-      .json({ ok: false, status: 405, error: "Method not allowed" });
+    return res.status(405).json({
+      ok: false,
+      status: 405,
+      error: "Method not allowed",
+    });
   }
 
+  console.log("📥 Incoming body:", JSON.stringify(req.body, null, 2));
+
   try {
-    const requestData =
-      typeof req.body === "string" ? JSON.parse(req.body) : req.body;
     const {
-      apiKey, // Extract apiKey (not used for DB operations)
       title,
       tagline,
       content,
@@ -23,31 +24,62 @@ export default async function handler(req, res) {
       idea,
       plan,
       tableOfContent,
-      credit,
-      cost,
       toc,
       contains_math,
       contains_code,
       intro_content,
       intro_html,
-      chaptersMarkdown,
+      credit,
+      cost,
       category,
       model,
+      chaptersMarkdown,
       chaptersHtml,
-    } = requestData;
+    } = req.body;
 
-    const db = await openDb();
-    await initializeTables(db);
+    // Validate required fields
+    if (
+      !title ||
+      !Array.isArray(chaptersMarkdown) ||
+      !Array.isArray(chaptersHtml)
+    ) {
+      return res.status(400).json({
+        ok: false,
+        status: 400,
+        error: "Title and chapter content (markdown/html) are required",
+      });
+    }
 
-    await db.exec("BEGIN TRANSACTION");
+    if (chaptersMarkdown.length !== chaptersHtml.length) {
+      return res.status(400).json({
+        ok: false,
+        status: 400,
+        error: "Mismatch between markdown and HTML chapter counts",
+      });
+    }
 
-    let bookId;
+    // Use tableOfContent or toc, fallback to empty array
+    let effectiveToc = Array.isArray(tableOfContent)
+      ? tableOfContent
+      : Array.isArray(toc)
+      ? toc
+      : [];
 
-    try {
-      // Insert the book record
-      const result = await db.run(
-        "INSERT INTO books (title, tagline, content, html, about, keypoints, language, idea, plan, toc, contains_math, contains_code, intro_content, intro_html, credit, cost, category, model) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        [
+    // If TOC is not valid, generate fallback titles
+    if (!Array.isArray(effectiveToc) || effectiveToc.length === 0) {
+      console.warn("No valid TOC provided, generating fallback TOC");
+      effectiveToc = chaptersMarkdown.map((_, i) => ({
+        title: `Chapter ${i + 1}`,
+        summary: "",
+        matter_type: 1,
+      }));
+    }
+
+    // 1. Insert the book
+    const { data, error: bookError } = await supabase
+      .from("books")
+      .insert([
+        {
           title,
           tagline,
           content,
@@ -57,49 +89,67 @@ export default async function handler(req, res) {
           language,
           idea,
           plan,
-          tableOfContent,
-          contains_math,
-          contains_code,
+          toc: effectiveToc,
+          contains_math: Boolean(contains_math),
+          contains_code: Boolean(contains_code),
           intro_content,
           intro_html,
           credit,
           cost,
           category,
           model,
-        ]
-      );
+        },
+      ])
+      .select("id")
+      .single();
 
-      bookId = result.lastID;
-
-      // Insert chapters records
-      for (let i = 0; i < toc.length; i++) {
-        await db.run(
-          "INSERT INTO chapters (book_id, title, summary, content, html, matter_type) VALUES (?, ?, ?, ?, ?, ?)",
-          [
-            bookId,
-            toc[i].title,
-            toc[i].summary,
-            chaptersMarkdown[i],
-            chaptersHtml[i],
-            toc[i].matter_type,
-          ]
-        );
-      }
-
-      await db.exec("COMMIT");
-    } catch (error) {
-      await db.exec("ROLLBACK");
-      throw error;
-    } finally {
-      await db.close();
+    if (bookError || !data) {
+      console.error("Supabase insert error:", bookError);
+      return res.status(500).json({
+        ok: false,
+        status: 500,
+        error:
+          "Failed to create book: " +
+          (bookError?.message || "No data returned"),
+      });
     }
 
-    return res
-      .status(201)
-      .json({ ok: true, status: 201, book: { id: bookId } });
+    const bookId = data.id;
+
+    // 2. Insert chapters
+    const chapterInserts = effectiveToc.map((tocItem, index) => ({
+      book_id: bookId,
+      title: tocItem.title,
+      summary: tocItem.summary,
+      content: chaptersMarkdown[index],
+      html: chaptersHtml[index],
+      matter_type: tocItem.matter_type || null,
+    }));
+
+    const { error: chaptersError } = await supabase
+      .from("chapters")
+      .insert(chapterInserts);
+
+    if (chaptersError) {
+      console.error("Error inserting chapters:", chaptersError);
+      return res.status(500).json({
+        ok: false,
+        status: 500,
+        error: "Failed to save chapters: " + chaptersError.message,
+      });
+    }
+
+    return res.status(201).json({
+      ok: true,
+      status: 201,
+      book: { id: bookId },
+    });
   } catch (error) {
-    return res
-      .status(200)
-      .json({ ok: false, status: 500, error: error.message });
+    console.error("Unexpected error in /api/savebook:", error);
+    return res.status(500).json({
+      ok: false,
+      status: 500,
+      error: "Internal server error",
+    });
   }
 }

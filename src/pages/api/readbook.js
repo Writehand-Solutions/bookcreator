@@ -1,72 +1,107 @@
-// /api/readbook.js
-import { openDb, initializeTables } from "../../lib/db";
+// /pages/api/readbook.js
+import { supabase } from "../../lib/db";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res
-      .status(200)
-      .json({ ok: false, status: 405, error: "Method not allowed" });
+    return res.status(405).json({
+      ok: false,
+      status: 405,
+      error: "Method not allowed",
+    });
   }
 
   try {
-    const requestData =
-      typeof req.body === "string" ? JSON.parse(req.body) : req.body;
-    const { apiKey, id } = requestData; // Extract apiKey (not used for DB operations)
+    const { id } = req.body;
 
     if (!id) {
-      return res
-        .status(400)
-        .json({ ok: false, status: 400, error: "Book ID is required" });
+      return res.status(400).json({
+        ok: false,
+        status: 400,
+        error: "Book ID is required",
+      });
     }
 
-    const db = await openDb();
-    await initializeTables(db);
-
-    const bookData = await db.get("SELECT * FROM books WHERE id = ?", [id]);
-
-    if (!bookData) {
-      return res
-        .status(404)
-        .json({ ok: false, status: 404, error: "Book not found" });
+    const bookId = Number(id);
+    if (isNaN(bookId)) {
+      return res.status(400).json({
+        ok: false,
+        status: 400,
+        error: "Invalid book ID",
+      });
     }
 
-    // Retrieve the chapters associated with the book ID and join with the active chapter_rewrites
-    const chaptersData = await db.all(
-      `
-            SELECT 
-                c.id,
-                c.created_at,
-                c.book_id,
-                c.title,
-                c.summary,
-                c.matter_type,
-                COALESCE(cr.content, c.content) AS content,
-                COALESCE(cr.html, c.html) AS html,
-                cr.prompt AS prompt,
-                cr.credit AS credit,
-                cr.cost AS cost
-            FROM 
-                chapters c
-            LEFT JOIN 
-                chapter_rewrites cr 
-            ON 
-                c.id = cr.chapter_id AND cr.is_active = 1
-            WHERE 
-                c.book_id = ? 
-            ORDER BY 
-                c.id ASC
-        `,
-      [id]
+    // 1. Fetch the book
+    const { data: book, error: bookError } = await supabase
+      .from("books")
+      .select("*")
+      .eq("id", bookId)
+      .single();
+
+    if (bookError || !book) {
+      return res.status(404).json({
+        ok: false,
+        status: 404,
+        error: "Book not found",
+      });
+    }
+
+    // 2. Fetch chapters for this book
+    const { data: chapters, error: chaptersError } = await supabase
+      .from("chapters")
+      .select("*")
+      .eq("book_id", bookId)
+      .order("id", { ascending: true });
+
+    if (chaptersError) {
+      console.error("Error fetching chapters:", chaptersError);
+      return res.status(500).json({
+        ok: false,
+        status: 500,
+        error: "Failed to fetch chapters",
+      });
+    }
+
+    // 3. For each chapter, get the active rewrite (is_active = true)
+    const enhancedChapters = await Promise.all(
+      (chapters || []).map(async (chapter) => {
+        const { data: rewrites, error } = await supabase
+          .from("chapter_rewrites")
+          .select("content, html, prompt, credit, cost")
+          .eq("chapter_id", chapter.id)
+          .eq("is_active", true)
+          .maybeSingle();
+
+        if (error && error.code !== "PGRST116") {
+          // PGRST116 = "no rows found"
+          console.warn(
+            `Error fetching rewrite for chapter ${chapter.id}:`,
+            error
+          );
+        }
+
+        return {
+          ...chapter,
+          content: rewrites?.content ?? chapter.content,
+          html: rewrites?.html ?? chapter.html,
+          prompt: rewrites?.prompt ?? null,
+          credit: rewrites?.credit ?? null,
+          cost: rewrites?.cost ?? null,
+        };
+      })
     );
 
-    await db.close();
-
-    return res
-      .status(200)
-      .json({ ok: true, status: 200, book: bookData, chapters: chaptersData });
+    return res.status(200).json({
+      ok: true,
+      status: 200,
+      book,
+      chapters: enhancedChapters,
+    });
   } catch (error) {
-    return res
-      .status(200)
-      .json({ ok: false, status: 500, error: error.message });
+    console.error("Unexpected error in /api/readbook:", error);
+    return res.status(500).json({
+      ok: false,
+      status: 500,
+      error: "Internal server error",
+    });
   }
 }

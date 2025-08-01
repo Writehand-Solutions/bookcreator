@@ -294,26 +294,35 @@ export default function CreateBook() {
 
   const handleReadBook = async (id) => {
     setBookLoading(true);
-
     await stopEditing();
-
     localStorage.setItem("activeBookId", id);
 
-    let bookData = {
-      id,
-    };
+    let bookData = { id };
     let result = await fetch("/api/readbook", {
       method: "POST",
       body: JSON.stringify(bookData),
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
     });
     result = await result.json();
-    if (!result.error) {
-      localStorage.setItem("activeChapterId", result.chapters[0].id);
 
-      setBookHtml(result.chapters[0].html);
+    if (!result.error) {
+      // ✅ Safe: check if chapters exist and are not empty
+      if (!result.chapters || result.chapters.length === 0) {
+        console.warn("No chapters found for book", id);
+        setBookHtml("");
+        setChapters([]);
+        setRewrites([]);
+        setActiveBookId(id);
+        setActiveChapterId(null);
+        setShowChapterList(true);
+        setSelectedBookId(id);
+        setBookLoading(false);
+        return;
+      }
+
+      const firstChapter = result.chapters[0];
+      localStorage.setItem("activeChapterId", firstChapter.id);
+      setBookHtml(firstChapter.html);
       setBook(result.book);
       setTitle(result.book.title);
       setAbout(result.book.about);
@@ -321,20 +330,16 @@ export default function CreateBook() {
       setCategory(parseInt(result.book.category));
       setLanguage(result.book.language);
       setChapters(result.chapters);
-
       setActiveBookId(id);
-      setActiveChapterId(result.chapters[0].id); // set active chapter
+      setActiveChapterId(firstChapter.id);
       setShowChapterList(true);
-
       setActiveChapterIndex(0);
+      setSelectedBookId(id);
 
-      setSelectedBookId(id); // Store the selected book ID
-
-      // console.log(result.book);
-      // console.log(result.chapters);
+      getRewrites(firstChapter.id);
+    } else {
+      console.error("Failed to load book:", result.error);
     }
-
-    getRewrites(result.chapters[0].id);
 
     setBookLoading(false);
   };
@@ -459,10 +464,36 @@ export default function CreateBook() {
       return false;
     }
 
+    // Fallback: if tableOfContent or toc is invalid, generate from chapter count
+    let tableOfContent = data.tableOfContent || data.toc || [];
+
+    // If still not an array, or empty, create a fallback
+    if (!Array.isArray(tableOfContent)) {
+      console.warn("tableOfContent is not an array, creating fallback");
+      tableOfContent = [];
+    }
+
+    // If no TOC, but we have chapters, create numbered titles
+    if (
+      tableOfContent.length === 0 &&
+      data.chaptersMarkdown &&
+      Array.isArray(data.chaptersMarkdown)
+    ) {
+      console.warn("No TOC provided, generating fallback TOC");
+      tableOfContent = data.chaptersMarkdown.map((_, index) => ({
+        title: `Chapter ${index + 1}`,
+        summary: "",
+        matter_type: 1,
+      }));
+    }
+
+    // Ensure contains_math and contains_code are integers (0 or 1)
+    const containsMath = data.containsMath ? 1 : 0;
+    const containsCode = data.containsCode ? 1 : 0;
+
     let bookData = {
       title: data.title,
       tagline: data.tagline,
-      intro: data.intro,
       content: data.bookMarkdown,
       html: data.bookHtml,
       about: data.bookConfig.about,
@@ -470,19 +501,19 @@ export default function CreateBook() {
       language: data.bookConfig.language,
       idea: data.idea,
       plan: data.plan,
-      tableOfContent: data.tableOfContent,
-      credit: data.cost * creditConversion,
-      cost: data.cost,
-      toc: data.toc,
-      contains_math: data.containsMath,
-      contains_code: data.containsCode,
+      tableOfContent, // now guaranteed to be valid
+      toc: tableOfContent, // redundant but safe
+      contains_math: containsMath,
+      contains_code: containsCode,
       intro_content: data.introMarkdown,
       intro_html: data.introHtml,
+      credit: data.cost * creditConversion,
+      cost: data.cost,
       chaptersMarkdown: data.chaptersMarkdown,
       chaptersHtml: data.chaptersHtml,
-      category: data.bookConfig.category, //catNum,
-      model: data.bookConfig.model, //model,
-      apiKey: userApiKey, // Add API key
+      category: data.bookConfig.category,
+      model: data.bookConfig.model,
+      apiKey: userApiKey,
     };
 
     let result = await fetch("/api/savebook", {
@@ -496,23 +527,23 @@ export default function CreateBook() {
 
     if (!result.error) {
       const bookId = result.book.id;
+      const chapterId =
+        data.chaptersHtml.length > 0 ? 1 : result.chapters[0]?.id;
 
-      // Add the new book to the top of the list
-      let insertedBook = {
+      // Add book to the top of the list
+      const insertedBook = {
         id: bookId,
         title: data.title,
         tagline: data.tagline,
       };
-      setBooks((prevBooks) => [insertedBook, ...prevBooks]); // Add to the top
+      setBooks((prevBooks) => [insertedBook, ...prevBooks]);
 
-      // Reset view to show book list instead of staying in chapter view
-      setShowChapterList(false);
-      setBookHtml("");
-      setActiveBookId(null);
-      setActiveChapterId(null);
+      // ✅ Immediately open the new book and its first chapter
+      await handleOpenLastChapter(bookId, chapterId);
 
-      localStorage.removeItem("activeBookId");
-      localStorage.removeItem("activeChapterId");
+      // ✅ Optionally save to localStorage for persistence
+      localStorage.setItem("activeBookId", bookId);
+      localStorage.setItem("activeChapterId", chapterId);
     }
 
     setIsGenerating(false); // Stop generating
@@ -573,26 +604,36 @@ export default function CreateBook() {
   }
 
   const handleOpenLastChapter = async (id, chapterid) => {
-    // similar to handleReadBook
-    let bookData = {
-      id,
-    };
+    let bookData = { id };
     let result = await fetch("/api/readbook", {
       method: "POST",
       body: JSON.stringify(bookData),
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
     });
     result = await result.json();
 
     if (!result.error) {
+      // ✅ Check if chapters exist
+      if (!result.chapters || result.chapters.length === 0) {
+        console.warn("No chapters found when opening last chapter");
+        setBookHtml("");
+        setChapters([]);
+        setActiveChapterId(parseInt(chapterid) || null);
+        setBookLoading(false);
+        return;
+      }
+
+      const chapterIdNum = Number(chapterid);
       const item = result.chapters.find(
-        (chapter) => chapter.id + "" === chapterid + ""
+        (chapter) => Number(chapter.id) === chapterIdNum
       );
 
-      console.log(result.book);
-      console.log(result.chapters);
+      if (!item) {
+        console.error("Chapter not found:", chapterid, "in book", id);
+        setBookHtml("");
+        setBookLoading(false);
+        return;
+      }
 
       setBookHtml(item.html);
       setBook(result.book);
@@ -602,20 +643,19 @@ export default function CreateBook() {
       setCategory(parseInt(result.book.category));
       setLanguage(result.book.language);
       setChapters(result.chapters);
-
       setActiveBookId(id);
-      setActiveChapterId(parseInt(chapterid)); // set active chapter
+      setActiveChapterId(chapterIdNum);
       setShowChapterList(true);
-
       const index = result.chapters.findIndex(
-        (chapter) => chapter.id + "" === chapterid + ""
+        (chapter) => Number(chapter.id) === chapterIdNum
       );
       setActiveChapterIndex(index);
+      setSelectedBookId(id);
 
-      setSelectedBookId(id); // Store the selected book ID
+      getRewrites(chapterIdNum);
     }
 
-    getRewrites(chapterid);
+    setBookLoading(false);
   };
 
   const hasFetchedBooks = useRef(false);
