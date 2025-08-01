@@ -11,13 +11,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { id, chapter_id } = req.body;
+    const { id, chapter_id, user_id } = req.body;
 
-    if (!id || !chapter_id) {
+    if (!id || !chapter_id || !user_id) {
       return res.status(400).json({
         ok: false,
         status: 400,
-        error: "Both 'id' (rewrite ID) and 'chapter_id' are required",
+        error: "Missing id, chapter_id, or user_id",
       });
     }
 
@@ -28,16 +28,17 @@ export default async function handler(req, res) {
       return res.status(400).json({
         ok: false,
         status: 400,
-        error: "Invalid IDs: 'id' and 'chapter_id' must be numbers",
+        error: "Invalid IDs",
       });
     }
 
-    // 1. Verify the rewrite belongs to the chapter
+    // Verify the rewrite belongs to the chapter AND user
     const { count, error: checkError } = await supabase
       .from("chapter_rewrites")
       .select("id", { count: "exact", head: true })
       .eq("id", rewriteId)
-      .eq("chapter_id", chapterId);
+      .eq("chapter_id", chapterId)
+      .eq("user_id", user_id);
 
     if (checkError) {
       console.error("Error checking rewrite ownership:", checkError);
@@ -52,11 +53,11 @@ export default async function handler(req, res) {
       return res.status(404).json({
         ok: false,
         status: 404,
-        error: "Rewrite not found for this chapter",
+        error: "Rewrite not found for this chapter and user",
       });
     }
 
-    // 2. Deactivate all active rewrites for this chapter
+    // Deactivate all active rewrites for this chapter
     const { error: updateError } = await supabase
       .from("chapter_rewrites")
       .update({ is_active: false })
@@ -72,7 +73,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // 3. Activate the specified rewrite
+    // Activate the specified rewrite
     const { error: activateError } = await supabase
       .from("chapter_rewrites")
       .update({ is_active: true })

@@ -20,7 +20,12 @@ import ApiKeyManager from "../components/ApiKeyManager";
 
 export default function CreateBook() {
   // --- settings ---
-  const [isDemo, setIsDemo] = useState(false); // If true (demo mode), the number of generated chapters is limited by 'limit'
+  const [isDemo, setIsDemo] = useState(false);
+
+  // API KEY STATE
+  const [userApiKey, setUserApiKey] = useState("");
+  const [userId, setUserId] = useState(null);
+
   const [limit, setLimit] = useState(2); // Number of chapters generated in demo mode
   const [model, setModel] = useState("gpt-4o-mini"); // AI model to use; options are 'gpt-4o-mini' (default) or 'gpt-4o'
   const [showCost, setShowCost] = useState(false); // If true, displays the cost of generating each book
@@ -62,27 +67,38 @@ export default function CreateBook() {
   const promptRef = useRef(null);
   const scrollContainerRef = useRef(null);
 
-  // API KEY STATE
-  const [userApiKey, setUserApiKey] = useState("");
+  const [page, setPage] = useState(0);
+  const [hasMoreBooks, setHasMoreBooks] = useState(true);
+  const scrollableMainRef = useRef(null);
+  const scrollableSideRef = useRef(null);
+
+  const [isUserReady, setIsUserReady] = useState(false);
+
+  useEffect(() => {
+    const getOrCreateUserId = () => {
+      const stored = localStorage.getItem("userId");
+      if (stored) return stored;
+      const newId =
+        Date.now().toString(36) + Math.random().toString(36).substr(2);
+      localStorage.setItem("userId", newId);
+      return newId;
+    };
+
+    setUserId(getOrCreateUserId());
+    setIsUserReady(true);
+  }, []);
 
   // Initialize BookCreatorAI when API key is available
   useEffect(() => {
     if (userApiKey) {
       console.log("🚀 Initializing BookCreatorAI with API key in headers");
-
       const book = new BookCreatorAI({
         sendCommandUrl: "/api/sendcommand",
         demo: false,
-        // Pass the API key through headers
         defaultHeaders: {
           "X-OpenAI-API-Key": userApiKey,
           "Content-Type": "application/json",
         },
-        // Alternative approach using headers instead of defaultHeaders:
-        // headers: {
-        //   'X-OpenAI-API-Key': userApiKey,
-        //   'Content-Type': 'application/json'
-        // }
       });
       setBookObject(book);
     }
@@ -140,7 +156,8 @@ export default function CreateBook() {
         id: activeChapterId,
         html,
         title,
-        apiKey: userApiKey, // Add API key
+        user_id: userId, // ✅
+        apiKey: userApiKey,
       };
 
       let result = await fetch("/api/updatechapter", {
@@ -180,10 +197,6 @@ export default function CreateBook() {
   }
 
   // Function to fetch books in batches (pagination)
-  const [page, setPage] = useState(0);
-  const [hasMoreBooks, setHasMoreBooks] = useState(true); // New flag for checking if more books are available
-  const scrollableMainRef = useRef(null);
-  const scrollableSideRef = useRef(null);
   const fetchBooks = async (reset = false) => {
     if (!hasMoreBooks && !loading) return;
 
@@ -203,10 +216,8 @@ export default function CreateBook() {
 
     let result = await fetch("/api/getbooks", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ offset, limit: BATCH_SIZE }),
+      body: JSON.stringify({ offset, limit, user_id: userId }),
+      headers: { "Content-Type": "application/json" },
     });
     result = await result.json();
     if (!result.error) {
@@ -406,7 +417,8 @@ export default function CreateBook() {
       credit: data.cost * creditConversion,
       cost: data.cost,
       prompt: rewritePrompt,
-      apiKey: userApiKey, // Add API key
+      user_id: userId, // ✅
+      apiKey: userApiKey,
     };
 
     let result = await fetch("/api/savechapter", {
@@ -513,6 +525,7 @@ export default function CreateBook() {
       chaptersHtml: data.chaptersHtml,
       category: data.bookConfig.category,
       model: data.bookConfig.model,
+      user_id: userId,
       apiKey: userApiKey,
     };
 
@@ -694,6 +707,7 @@ export default function CreateBook() {
     let data = {
       id: rewriteid,
       chapter_id: activeChapterId,
+      user_id: userId, // ✅
     };
     let result = await fetch("/api/setchapter", {
       method: "POST",

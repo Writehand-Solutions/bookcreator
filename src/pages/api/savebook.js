@@ -35,6 +35,7 @@ export default async function handler(req, res) {
       model,
       chaptersMarkdown,
       chaptersHtml,
+      user_id, // ✅ Add user_id from frontend
     } = req.body;
 
     // Validate required fields
@@ -58,6 +59,14 @@ export default async function handler(req, res) {
       });
     }
 
+    if (!user_id) {
+      return res.status(400).json({
+        ok: false,
+        status: 400,
+        error: "Missing user_id",
+      });
+    }
+
     // Use tableOfContent or toc, fallback to empty array
     let effectiveToc = Array.isArray(tableOfContent)
       ? tableOfContent
@@ -75,7 +84,7 @@ export default async function handler(req, res) {
       }));
     }
 
-    // 1. Insert the book
+    // 1. Insert the book with user_id
     const { data, error: bookError } = await supabase
       .from("books")
       .insert([
@@ -98,6 +107,7 @@ export default async function handler(req, res) {
           cost,
           category,
           model,
+          user_id, // ✅ Save user_id
         },
       ])
       .select("id")
@@ -116,9 +126,10 @@ export default async function handler(req, res) {
 
     const bookId = data.id;
 
-    // 2. Insert chapters
+    // 2. Insert chapters with user_id
     const chapterInserts = effectiveToc.map((tocItem, index) => ({
       book_id: bookId,
+      user_id, // ✅ Add user_id to chapters
       title: tocItem.title,
       summary: tocItem.summary,
       content: chaptersMarkdown[index],

@@ -11,13 +11,21 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { id, content, html, credit, cost, prompt } = req.body;
+    const { id, content, html, credit, cost, prompt, user_id } = req.body;
 
     if (!id) {
       return res.status(400).json({
         ok: false,
         status: 400,
         error: "Chapter ID (id) is required",
+      });
+    }
+
+    if (!user_id) {
+      return res.status(400).json({
+        ok: false,
+        status: 400,
+        error: "Missing user_id",
       });
     }
 
@@ -54,7 +62,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // 2. Insert the new active rewrite
+    // 2. Insert the new active rewrite with user_id
     const { error: insertError } = await supabase
       .from("chapter_rewrites")
       .insert({
@@ -65,6 +73,7 @@ export default async function handler(req, res) {
         credit: credit || 0,
         cost: cost || 0,
         is_active: true,
+        user_id, // ✅ Add user_id for isolation
       });
 
     if (insertError) {
