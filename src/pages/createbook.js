@@ -706,8 +706,8 @@ export default function CreateBook() {
         <title>My Books</title>
       </Head>
 
-      {/* API Key Manager - Only show if no API key is set */}
-      {!userApiKey && <ApiKeyManager onApiKeySet={setUserApiKey} />}
+      {/* API Key Manager - positioned at bottom left */}
+      <ApiKeyManager onApiKeySet={setUserApiKey} position="bottom-left" />
 
       {/* Show the app content once API key is set */}
       {userApiKey && (
@@ -784,42 +784,42 @@ export default function CreateBook() {
               {/* Chapter List */}
               {showChapterList && (
                 <div
-                  className={`flex-shrink-0 flex flex-col justify-between overflow-x-hidden w-80 h-screen p-4 bg-gray-100`}
+                  className={`flex-shrink-0 overflow-x-hidden w-80 h-screen p-4 bg-gray-100`}
                 >
-                  <div>
-                    <button
-                      className="w-full text-left text-sm rounded-sm px-4 py-2 hover:bg-gray-200 focus:outline-none"
-                      onClick={async () => {
-                        await stopEditing();
-                        setShowChapterList(false);
+                  <button
+                    className="w-full text-left text-sm rounded-sm px-4 py-2 hover:bg-gray-200 focus:outline-none"
+                    onClick={async () => {
+                      await stopEditing();
+                      setShowChapterList(false);
 
-                        localStorage.removeItem("activeBookId");
-                        localStorage.removeItem("activeChapterId");
-                      }}
-                    >
-                      &larr; Back
-                    </button>
+                      localStorage.removeItem("activeBookId");
+                      localStorage.removeItem("activeChapterId");
+                    }}
+                  >
+                    &larr; Back
+                  </button>
 
-                    <ChapterList
-                      bookTitle={title}
-                      chapters={chapters}
-                      activeChapterId={activeChapterId}
-                      handleReadChapter={handleReadChapter}
-                      credit={book.credit}
-                      cost={book.cost}
-                      showCredit={showCredit}
-                      showCost={showCost}
-                      handleBookUpdated={handleBookUpdated}
-                    />
+                  <ChapterList
+                    bookTitle={title}
+                    chapters={chapters}
+                    activeChapterId={activeChapterId}
+                    handleReadChapter={handleReadChapter}
+                    credit={book.credit}
+                    cost={book.cost}
+                    showCredit={showCredit}
+                    showCost={showCost}
+                    handleBookUpdated={handleBookUpdated}
+                  />
 
-                    <PrintBookButton chapters={chapters} title={title} />
-                  </div>
+                  <PrintBookButton chapters={chapters} title={title} />
 
                   {!isEditing && (
-                    <DeleteBookButton
-                      handleDeleteBook={handleDeleteBook}
-                      selectedBookId={selectedBookId}
-                    />
+                    <div className="mt-4">
+                      <DeleteBookButton
+                        handleDeleteBook={handleDeleteBook}
+                        selectedBookId={selectedBookId}
+                      />
+                    </div>
                   )}
                 </div>
               )}

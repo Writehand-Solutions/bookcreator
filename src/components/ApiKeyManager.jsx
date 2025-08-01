@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { EyeIcon, EyeSlashIcon, KeyIcon } from "@heroicons/react/24/outline";
 
-export default function ApiKeyManager({ onApiKeySet }) {
+export default function ApiKeyManager({ onApiKeySet, position = "top-left" }) {
   const [apiKey, setApiKey] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [isValid, setIsValid] = useState(null);
@@ -80,10 +80,25 @@ export default function ApiKeyManager({ onApiKeySet }) {
     onApiKeySet("");
   };
 
+  // Get position classes based on position prop
+  const getPositionClasses = () => {
+    switch (position) {
+      case "bottom-left":
+        return "fixed bottom-4 left-4 z-50";
+      case "bottom-right":
+        return "fixed bottom-4 right-4 z-50";
+      case "top-right":
+        return "fixed top-4 right-4 z-50";
+      case "top-left":
+      default:
+        return "fixed top-4 left-4 z-50";
+    }
+  };
+
   // If API key is valid, show a minimal indicator
   if (isValid) {
     return (
-      <div className="fixed top-4 left-4 z-50">
+      <div className={getPositionClasses()}>
         <div className="flex items-center space-x-2 bg-green-100 text-green-800 px-3 py-2 rounded-lg text-sm">
           <KeyIcon className="w-4 h-4" />
           <span>API Key Active</span>
