@@ -1,5 +1,26 @@
 import { useState, useEffect } from "react";
-import { EyeIcon, EyeSlashIcon, KeyIcon } from "@heroicons/react/24/outline";
+import { Eye, EyeOff, Key, X, ExternalLink } from "lucide-react";
+
+// shadcn/ui components
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function ApiKeyManager({ onApiKeySet, position = "top-left" }) {
   const [apiKey, setApiKey] = useState("");
@@ -10,7 +31,7 @@ export default function ApiKeyManager({ onApiKeySet, position = "top-left" }) {
   useEffect(() => {
     // Check for existing API key in localStorage
     const savedApiKey = localStorage.getItem("openai_api_key");
-    console.log("Saved API key found:", savedApiKey ? "Yes" : "No"); // Debug log
+    console.log("Saved API key found:", savedApiKey ? "Yes" : "No");
     if (savedApiKey) {
       setApiKey(savedApiKey);
       setIsValid(true); // Assume it's valid if saved
@@ -25,7 +46,7 @@ export default function ApiKeyManager({ onApiKeySet, position = "top-left" }) {
     }
 
     setIsValidating(true);
-    console.log("Validating API key..."); // Debug log
+    console.log("Validating API key...");
 
     try {
       // Test the API key with a simple request
@@ -45,21 +66,21 @@ export default function ApiKeyManager({ onApiKeySet, position = "top-left" }) {
       });
 
       const data = await response.json();
-      console.log("API key validation response:", data); // Debug log
+      console.log("API key validation response:", data);
 
       if (response.ok && !data.error) {
         setIsValid(true);
         localStorage.setItem("openai_api_key", key);
         onApiKeySet(key);
-        console.log("API key validated successfully"); // Debug log
+        console.log("API key validated successfully");
         return true;
       } else {
-        console.log("API key validation failed:", data.error); // Debug log
+        console.log("API key validation failed:", data.error);
         setIsValid(false);
         return false;
       }
     } catch (error) {
-      console.log("API key validation error:", error); // Debug log
+      console.log("API key validation error:", error);
       setIsValid(false);
       return false;
     } finally {
@@ -68,12 +89,12 @@ export default function ApiKeyManager({ onApiKeySet, position = "top-left" }) {
   };
 
   const handleSaveApiKey = async () => {
-    console.log("Attempting to save API key"); // Debug log
+    console.log("Attempting to save API key");
     await validateApiKey(apiKey);
   };
 
   const handleRemoveApiKey = () => {
-    console.log("Removing API key"); // Debug log
+    console.log("Removing API key");
     setApiKey("");
     setIsValid(null);
     localStorage.removeItem("openai_api_key");
@@ -99,95 +120,116 @@ export default function ApiKeyManager({ onApiKeySet, position = "top-left" }) {
   if (isValid) {
     return (
       <div className={getPositionClasses()}>
-        <div className="flex items-center space-x-2 bg-green-100 text-green-800 px-3 py-2 rounded-lg text-sm">
-          <KeyIcon className="w-4 h-4" />
-          <span>API Key Active</span>
-          <button
+        <Badge
+          variant="secondary"
+          className="bg-green-100 text-green-800 hover:bg-green-200"
+        >
+          <Key className="w-4 h-4 mr-2" />
+          API Key Active
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={handleRemoveApiKey}
-            className="text-green-600 hover:text-green-800 ml-2"
+            className="ml-2 h-auto p-0 text-green-600 hover:text-green-800 hover:bg-transparent"
             title="Remove API Key"
           >
-            ×
-          </button>
-        </div>
+            <X className="w-4 h-4" />
+          </Button>
+        </Badge>
       </div>
     );
   }
 
-  // If no valid API key, show the input form
+  // If no valid API key, show the input form as a modal dialog
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-        <div className="flex items-center mb-4">
-          <KeyIcon className="w-6 h-6 text-gray-600 mr-2" />
-          <h2 className="text-xl font-semibold">OpenAI API Key Required</h2>
-        </div>
+    <Dialog open={!isValid} onOpenChange={() => {}}>
+      <DialogContent
+        className="sm:max-w-md"
+        onPointerDownOutside={(e) => e.preventDefault()}
+      >
+        <DialogHeader>
+          <DialogTitle className="flex items-center">
+            <Key className="w-5 h-5 mr-2" />
+            OpenAI API Key Required
+          </DialogTitle>
+          <DialogDescription>
+            Please enter your OpenAI API key to use this application. Your key
+            will be stored locally in your browser.
+          </DialogDescription>
+        </DialogHeader>
 
-        <p className="text-gray-600 mb-4">
-          Please enter your OpenAI API key to use this application. Your key
-          will be stored locally in your browser.
-        </p>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="apikey">API Key</Label>
+            <div className="relative">
+              <Input
+                id="apikey"
+                type={showKey ? "text" : "password"}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="sk-..."
+                className={isValid === false ? "border-destructive" : ""}
+                onKeyPress={(e) => {
+                  if (e.key === "Enter") {
+                    handleSaveApiKey();
+                  }
+                }}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowKey(!showKey)}
+                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+              >
+                {showKey ? (
+                  <EyeOff className="w-4 h-4" />
+                ) : (
+                  <Eye className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
+          </div>
 
-        <div className="relative mb-4">
-          <input
-            type={showKey ? "text" : "password"}
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder="sk-..."
-            className={`w-full px-3 py-2 border rounded-lg pr-10 ${
-              isValid === false ? "border-red-500" : "border-gray-300"
-            }`}
-            onKeyPress={(e) => {
-              if (e.key === "Enter") {
-                handleSaveApiKey();
-              }
-            }}
-          />
-          <button
-            type="button"
-            onClick={() => setShowKey(!showKey)}
-            className="absolute right-2 top-2 text-gray-500 hover:text-gray-700"
+          {isValid === false && (
+            <Alert variant="destructive">
+              <AlertDescription>
+                Invalid API key. Please check your key and try again.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <Button
+            onClick={handleSaveApiKey}
+            disabled={isValidating || !apiKey}
+            className="w-full"
           >
-            {showKey ? (
-              <EyeSlashIcon className="w-5 h-5" />
+            {isValidating ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                Validating...
+              </>
             ) : (
-              <EyeIcon className="w-5 h-5" />
+              "Save API Key"
             )}
-          </button>
+          </Button>
+
+          <div className="text-sm text-muted-foreground">
+            <p>
+              Don't have an API key?{" "}
+              <a
+                href="https://platform.openai.com/api-keys"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline inline-flex items-center"
+              >
+                Get one from OpenAI
+                <ExternalLink className="w-3 h-3 ml-1" />
+              </a>
+            </p>
+          </div>
         </div>
-
-        {isValid === false && (
-          <p className="text-red-500 text-sm mb-4">
-            Invalid API key. Please check your key and try again.
-          </p>
-        )}
-
-        <button
-          onClick={handleSaveApiKey}
-          disabled={isValidating || !apiKey}
-          className={`w-full py-2 px-4 rounded-lg font-medium ${
-            isValidating || !apiKey
-              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-              : "bg-blue-600 text-white hover:bg-blue-700"
-          }`}
-        >
-          {isValidating ? "Validating..." : "Save API Key"}
-        </button>
-
-        <div className="mt-4 text-sm text-gray-500">
-          <p>
-            Don't have an API key?{" "}
-            <a
-              href="https://platform.openai.com/api-keys"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:underline"
-            >
-              Get one from OpenAI
-            </a>
-          </p>
-        </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
