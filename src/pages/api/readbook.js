@@ -1,31 +1,38 @@
-import { openDb, initializeTables } from '../../lib/db';
+// /api/readbook.js
+import { openDb, initializeTables } from "../../lib/db";
 
 export default async function handler(req, res) {
-    if (req.method !== 'POST') {
-        return res.status(200).json({ ok: false, status: 405, error: 'Method not allowed' });
+  if (req.method !== "POST") {
+    return res
+      .status(200)
+      .json({ ok: false, status: 405, error: "Method not allowed" });
+  }
+
+  try {
+    const requestData =
+      typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+    const { apiKey, id } = requestData; // Extract apiKey (not used for DB operations)
+
+    if (!id) {
+      return res
+        .status(400)
+        .json({ ok: false, status: 400, error: "Book ID is required" });
     }
 
-    try {
-        const { id } = JSON.parse(req.body);
+    const db = await openDb();
+    await initializeTables(db);
 
-        if (!id) {
-            return res.status(400).json({ ok: false, status: 400, error: 'Book ID is required' });
-        }
+    const bookData = await db.get("SELECT * FROM books WHERE id = ?", [id]);
 
-        const db = await openDb();
-        await initializeTables(db);
+    if (!bookData) {
+      return res
+        .status(404)
+        .json({ ok: false, status: 404, error: "Book not found" });
+    }
 
-        const bookData = await db.get("SELECT * FROM books WHERE id = ?", [id]);
-
-        if (!bookData) {
-            return res.status(404).json({ ok: false, status: 404, error: 'Book not found' });
-        }
-
-        // Retrieve the chapters associated with the book ID
-        // const chaptersData = await db.all("SELECT * FROM chapters WHERE book_id = ? ORDER BY id ASC", [id]);
-
-        // Retrieve the chapters associated with the book ID and join with the active chapter_rewrites
-        const chaptersData = await db.all(`
+    // Retrieve the chapters associated with the book ID and join with the active chapter_rewrites
+    const chaptersData = await db.all(
+      `
             SELECT 
                 c.id,
                 c.created_at,
@@ -48,13 +55,18 @@ export default async function handler(req, res) {
                 c.book_id = ? 
             ORDER BY 
                 c.id ASC
-        `, [id]);
+        `,
+      [id]
+    );
 
-        await db.close();
+    await db.close();
 
-        return res.status(200).json({ ok: true, status: 200, book: bookData, chapters: chaptersData });
-    } catch (error) {
-        return res.status(200).json({ ok: false, status: 500, error: error.message });
-    }
+    return res
+      .status(200)
+      .json({ ok: true, status: 200, book: bookData, chapters: chaptersData });
+  } catch (error) {
+    return res
+      .status(200)
+      .json({ ok: false, status: 500, error: error.message });
+  }
 }
-
