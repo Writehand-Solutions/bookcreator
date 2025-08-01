@@ -1,0 +1,48 @@
+# Environment variables
+.env
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
+
+# Next.js files
+.next
+out
+build
+
+# Node modules
+node_modules
+
+# Package manager lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Debug files
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+pnpm-debug.log
+
+# Editor related
+.vscode
+*.suo
+*.njsproj
+*.sln
+*.swp
+
+# OS files
+.DS_Store
+
+# Typescript
+*.tsbuildinfo
+
+# Coverage reports
+coverage
+
+# Temporary files
+*.log
+*.tmp

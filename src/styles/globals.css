@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+    font-family: system-ui, sans-serif;
+    font-size: 1.4rem;
+    line-height: 1.5;
+    font-weight: 400;
+}
+.container {
+    h1, h2, h3, h4, h5, h6 {
+        font-weight: 600;
+        line-height: 1.2;
+    }
+
+    h1 {font-size: 3.5rem; }
+    h2 {font-size: 2rem; margin: 1.5rem 0 1.5rem; }
+    h3 {font-size: 1.5rem; margin: 1.5rem 0 1.5rem; }
+    h4 {font-size: 1.3rem; margin: 1.5rem 0 1.5rem; }
+    h5 {font-size: 1.2rem; margin: 1.5rem 0 1.5rem; }
+    p, pre, ol, ul {margin:1.5rem 0 1.5rem;}
+
+    pre {
+        font-size: 16px;
+        /* This makes text wrap inside <pre> */
+        white-space: pre-wrap; 
+        background-color: #f7f7f7;
+        code.hljs {
+            background-color: #f7f7f7;
+        }
+    }
+    
+    ol {
+        @apply list-decimal ml-4 space-y-2;
+    }
+    
+    img {
+        margin: 0;
+    }
+}
+
+/* Optional ContentBuilder adjustment */
+.is-rte-tool, .is-elementrte-tool, .rte-more-options, .elementrte-more-options,
+.rte-zoom-options, .rte-icon-options, .rte-fontfamily-options, .rte-paragraph-options {
+    margin-left: 160px; /* Shift the toolbar (since there is a left side panel) */
+}
+.snippetwindow {
+    margin-top: 30px; 
+}
+
