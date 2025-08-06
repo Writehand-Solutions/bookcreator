@@ -4,15 +4,27 @@ import { useState, useEffect, useRef } from "react";
 import { PopoverGroup } from "@headlessui/react";
 import { PencilIcon, ArrowUturnLeftIcon } from "@heroicons/react/24/outline";
 import ContentBuilder from "@innovastudio/contentbuilder";
-// import ContentBuilder from '../contentbuilder/contentbuilder'; // If you have ContentBuilder source code
 import BookCreatorAI from "bookcreatorai";
+
+// shadcn/ui imports
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, BookOpen, ChevronLeft, Edit3, RotateCcw } from "lucide-react";
+
 import CreateBookFormInitial from "../components/CreateBookFormInitial";
 import ChapterVersionsPopover from "../components/ChapterVersionsPopover";
 import RewriteChapterPopover from "../components/RewriteChapterPopover";
-import BookCard from "../components/BookCard";
-import ChapterList from "../components/ChapterList";
 import AddBook from "../components/AddBook";
-import BookList from "../components/BookList";
 import DeleteBookButton from "../components/DeleteBookButton";
 import PrintBookButton from "../components/PrintBookButton";
 import MathContentWrapper from "../components/MathContentWrapper";
@@ -26,14 +38,12 @@ export default function CreateBook() {
   const [userApiKey, setUserApiKey] = useState("");
   const [userId, setUserId] = useState(null);
 
-  const [limit, setLimit] = useState(2); // Number of chapters generated in demo mode
-  const [model, setModel] = useState("gpt-4o-mini"); // AI model to use; options are 'gpt-4o-mini' (default) or 'gpt-4o'
-  const [showCost, setShowCost] = useState(false); // If true, displays the cost of generating each book
-  const [creditConversion, setCreditConversion] = useState(60); // Conversion rate for credits (default = 60)
-  const [showCredit, setShowCredit] = useState(false); // Credit = cost × creditConversion (for demonstrating usage amount)
+  const [limit, setLimit] = useState(2);
+  const [model, setModel] = useState("gpt-4o-mini");
+  const [showCost, setShowCost] = useState(false);
+  const [creditConversion, setCreditConversion] = useState(60);
+  const [showCredit, setShowCredit] = useState(false);
   // --- /settings ---
-
-  // See the handleCreateBook() function for an example of how BookCreatorAI.js is used to generate a book
 
   const [loading, setLoading] = useState(true);
   const [ready, setReady] = useState(false);
@@ -62,6 +72,9 @@ export default function CreateBook() {
   const [bookObject, setBookObject] = useState(null);
   const [versionLoading, setVersionLoading] = useState(false);
   const [bookLoading, setBookLoading] = useState(false);
+
+  const [selectedBooks, setSelectedBooks] = useState([]);
+  const [isSelectMode, setIsSelectMode] = useState(false);
 
   const topicRef = useRef(null);
   const promptRef = useRef(null);
@@ -107,22 +120,17 @@ export default function CreateBook() {
   function startEditing() {
     if (builderObject) return;
 
-    setIsEditing(true); // this shows div.container (the editable area)
+    setIsEditing(true);
 
     setTimeout(() => {
-      // give time for div.container to render
-
       const builder = new ContentBuilder({
         container: ".container",
         snippetModal: true,
       });
 
-      builder.loadSnippets("assets/minimalist-blocks/content.js"); // Load snippet file
-
-      const wrappedContent = wrapContentWithDOMParser(bookHtml); // wrap content in grid (div.row & div.column)
-
-      builder.loadHtml(wrappedContent); // load content
-
+      builder.loadSnippets("assets/minimalist-blocks/content.js");
+      const wrappedContent = wrapContentWithDOMParser(bookHtml);
+      builder.loadHtml(wrappedContent);
       setBuilderObject(builder);
     }, 0);
   }
@@ -133,7 +141,6 @@ export default function CreateBook() {
     const h2 = doc.querySelector("h2");
     if (h2) {
       const s = h2.innerText;
-      // const title = s.replace(/^\d+\.\s*/, '');
       const title = s.replace(/^\D*\d+[:\.]\s*/, "");
       return title;
     } else {
@@ -148,15 +155,13 @@ export default function CreateBook() {
   async function stopEditing() {
     if (builderObject) {
       const html = builderObject.html();
-
       const title = await getChapterTitle(html);
 
-      // Save
       let chapterData = {
         id: activeChapterId,
         html,
         title,
-        user_id: userId, // ✅
+        user_id: userId,
         apiKey: userApiKey,
       };
 
@@ -168,16 +173,11 @@ export default function CreateBook() {
         },
       });
 
-      // Quit editing
       builderObject.destroy();
       setBuilderObject(false);
-
       setIsEditing(false);
 
-      // Refresh
-      let bookData = {
-        id: activeBookId,
-      };
+      let bookData = { id: activeBookId };
       result = await fetch("/api/readbook", {
         method: "POST",
         body: JSON.stringify(bookData),
@@ -200,16 +200,15 @@ export default function CreateBook() {
   const fetchBooks = async (reset = false) => {
     if (!hasMoreBooks && !loading) return;
 
-    // Reset
     if (reset) {
       localStorage.removeItem("activeBookId");
       localStorage.removeItem("activeChapterId");
-      setPage(0); // Reset page counter
-      setHasMoreBooks(true); // Reset hasMoreBooks flag
+      setPage(0);
+      setHasMoreBooks(true);
     }
 
-    const BATCH_SIZE = 20; // Number of books to load per batch
-    const currentPage = reset ? 0 : page; // Use reset page or current page
+    const BATCH_SIZE = 20;
+    const currentPage = reset ? 0 : page;
     const offset = currentPage * BATCH_SIZE;
 
     setLoading(true);
@@ -222,19 +221,17 @@ export default function CreateBook() {
     result = await result.json();
     if (!result.error) {
       let booksData = result.books;
-      // console.log(booksData);
 
-      // Check if there are no more books to fetch
       if (booksData.length < BATCH_SIZE) {
-        setHasMoreBooks(false); // No more books available
+        setHasMoreBooks(false);
       }
 
       if (reset) {
-        setBooks(booksData); // Replace books on reset
-        setPage(1); // Set to next page
+        setBooks(booksData);
+        setPage(1);
       } else {
-        setBooks((prevBooks) => [...prevBooks, ...booksData]); // Append new books
-        setPage((prevPage) => prevPage + 1); // Increment page number
+        setBooks((prevBooks) => [...prevBooks, ...booksData]);
+        setPage((prevPage) => prevPage + 1);
       }
     }
 
@@ -246,7 +243,6 @@ export default function CreateBook() {
     if (scrollableMainRef.current) {
       const div = scrollableMainRef.current;
       if (div.scrollTop + div.clientHeight >= div.scrollHeight) {
-        // If scrolled to bottom, fetch more books
         fetchBooks();
       }
     }
@@ -255,7 +251,6 @@ export default function CreateBook() {
     if (scrollableSideRef.current) {
       const div = scrollableSideRef.current;
       if (div.scrollTop + div.clientHeight >= div.scrollHeight) {
-        // If scrolled to bottom, fetch more books
         fetchBooks();
       }
     }
@@ -276,13 +271,10 @@ export default function CreateBook() {
       div1 && div1.removeEventListener("scroll", handleMainScroll);
       div2 && div2.removeEventListener("scroll", handleSideScroll);
     };
-  }, [books, loading]); // Dependencies include session, books, and loading
+  }, [books, loading]);
 
   const getRewrites = async (chapterid) => {
-    // Read chapter rewrites
-    let chapterData = {
-      id: chapterid,
-    };
+    let chapterData = { id: chapterid };
     let resultRewrites = await fetch("/api/getrewrites", {
       method: "POST",
       body: JSON.stringify(chapterData),
@@ -317,7 +309,6 @@ export default function CreateBook() {
     result = await result.json();
 
     if (!result.error) {
-      // ✅ Safe: check if chapters exist and are not empty
       if (!result.chapters || result.chapters.length === 0) {
         console.warn("No chapters found for book", id);
         setBookHtml("");
@@ -364,7 +355,7 @@ export default function CreateBook() {
 
     setBookHtml(item.html);
     setActiveBookId(item.book_id);
-    setActiveChapterId(id); // set active chapter
+    setActiveChapterId(id);
 
     const index = chapters.findIndex((chapter) => chapter.id === id);
     setActiveChapterIndex(index);
@@ -382,7 +373,7 @@ export default function CreateBook() {
       return false;
     }
 
-    setIsRewriting(true); // Start re-generating
+    setIsRewriting(true);
 
     const index = chapters.findIndex(
       (chapter) => chapter.id === activeChapterId
@@ -402,11 +393,10 @@ export default function CreateBook() {
       chapterContent: chapter.content,
       containsMath: book.contains_math === 1 ? true : false,
       chapters: chapters,
-      index: index, // 0 = Introduction | 1 = Chapter 1 (Preparation) | 2, 3, 4 = Chapter 2 or other chapters
+      index: index,
     });
     if (!data) {
-      // aborted
-      setIsRewriting(false); // Stop re-generating
+      setIsRewriting(false);
       return false;
     }
 
@@ -417,7 +407,7 @@ export default function CreateBook() {
       credit: data.cost * creditConversion,
       cost: data.cost,
       prompt: rewritePrompt,
-      user_id: userId, // ✅
+      user_id: userId,
       apiKey: userApiKey,
     };
 
@@ -433,7 +423,7 @@ export default function CreateBook() {
       await handleOpenLastChapter(chapter.book_id, activeChapterId);
     }
 
-    setIsRewriting(false); // Stop re-generating
+    setIsRewriting(false);
     return true;
   };
 
@@ -448,7 +438,7 @@ export default function CreateBook() {
     if (category === "Story") catNum = 2;
     if (category === "General") catNum = 3;
 
-    setIsGenerating(true); // Start generating
+    setIsGenerating(true);
     setBookHtml("");
 
     let data = await bookObject.generate(
@@ -456,10 +446,9 @@ export default function CreateBook() {
         about: topic,
         keypoints: keypoints,
         model,
-        category: catNum, // 1 = Tech Books, 2 = Story, 3 = General, Not specified => will use AI to decide.
-        // If not in Programming or Story, will use custom prompts & rewritePrompts (must be specified).
+        category: catNum,
         language,
-        limit: isDemo ? limit : 1000, // limit only 2 chapters to return
+        limit: isDemo ? limit : 1000,
       },
       (status, done) => {
         if (status) {
@@ -469,23 +458,19 @@ export default function CreateBook() {
     );
 
     if (!data) {
-      // aborted
-      setIsGenerating(false); // Stop generating
+      setIsGenerating(false);
       setStatus("");
-      if (activeChapterId) handleReadChapter(activeChapterId); // Shows back currently opened chapter
+      if (activeChapterId) handleReadChapter(activeChapterId);
       return false;
     }
 
-    // Fallback: if tableOfContent or toc is invalid, generate from chapter count
     let tableOfContent = data.tableOfContent || data.toc || [];
 
-    // If still not an array, or empty, create a fallback
     if (!Array.isArray(tableOfContent)) {
       console.warn("tableOfContent is not an array, creating fallback");
       tableOfContent = [];
     }
 
-    // If no TOC, but we have chapters, create numbered titles
     if (
       tableOfContent.length === 0 &&
       data.chaptersMarkdown &&
@@ -499,7 +484,6 @@ export default function CreateBook() {
       }));
     }
 
-    // Ensure contains_math and contains_code are integers (0 or 1)
     const containsMath = data.containsMath ? 1 : 0;
     const containsCode = data.containsCode ? 1 : 0;
 
@@ -513,8 +497,8 @@ export default function CreateBook() {
       language: data.bookConfig.language,
       idea: data.idea,
       plan: data.plan,
-      tableOfContent, // now guaranteed to be valid
-      toc: tableOfContent, // redundant but safe
+      tableOfContent,
+      toc: tableOfContent,
       contains_math: containsMath,
       contains_code: containsCode,
       intro_content: data.introMarkdown,
@@ -543,7 +527,6 @@ export default function CreateBook() {
       const chapterId =
         data.chaptersHtml.length > 0 ? 1 : result.chapters[0]?.id;
 
-      // Add book to the top of the list
       const insertedBook = {
         id: bookId,
         title: data.title,
@@ -551,24 +534,20 @@ export default function CreateBook() {
       };
       setBooks((prevBooks) => [insertedBook, ...prevBooks]);
 
-      // ✅ Immediately open the new book and its first chapter
       await handleOpenLastChapter(bookId, chapterId);
 
-      // ✅ Optionally save to localStorage for persistence
       localStorage.setItem("activeBookId", bookId);
       localStorage.setItem("activeChapterId", chapterId);
     }
 
-    setIsGenerating(false); // Stop generating
+    setIsGenerating(false);
     setStatus("");
 
     return true;
   };
 
   const handleDeleteBook = async (id) => {
-    let bookData = {
-      id,
-    };
+    let bookData = { id };
     let result = await fetch("/api/deletebook", {
       method: "POST",
       body: JSON.stringify(bookData),
@@ -578,8 +557,7 @@ export default function CreateBook() {
     });
     result = await result.json();
     if (!result.error) {
-      // await fetchBooks(true);
-      setBooks((prevBooks) => prevBooks.filter((book) => book.id !== id)); // Remove the deleted book from the current books list
+      setBooks((prevBooks) => prevBooks.filter((book) => book.id !== id));
 
       setShowChapterList(false);
       setBookHtml("");
@@ -589,11 +567,40 @@ export default function CreateBook() {
     }
   };
 
+  const handleDeleteSelectedBooks = async () => {
+    if (selectedBooks.length === 0) return;
+
+    // Delete all selected books
+    for (const bookId of selectedBooks) {
+      await handleDeleteBook(bookId);
+    }
+
+    // Clear selection and exit select mode
+    setSelectedBooks([]);
+    setIsSelectMode(false);
+  };
+
+  const handleSelectBook = (bookId) => {
+    setSelectedBooks((prev) =>
+      prev.includes(bookId)
+        ? prev.filter((id) => id !== bookId)
+        : [...prev, bookId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedBooks.length === books.length) {
+      setSelectedBooks([]);
+    } else {
+      setSelectedBooks(books.map((book) => book.id));
+    }
+  };
+
   async function handleBookUpdated(title) {
     let bookData = {
       id: activeBookId,
       title: title,
-      apiKey: userApiKey, // Add API key
+      apiKey: userApiKey,
     };
 
     let result = await fetch("/api/updatebook", {
@@ -605,7 +612,6 @@ export default function CreateBook() {
     });
     result = await result.json();
     if (!result.error) {
-      // await fetchBooks();
       setBooks((prevBooks) =>
         prevBooks.map((book) =>
           book.id === activeBookId ? { ...book, title: title } : book
@@ -626,7 +632,6 @@ export default function CreateBook() {
     result = await result.json();
 
     if (!result.error) {
-      // ✅ Check if chapters exist
       if (!result.chapters || result.chapters.length === 0) {
         console.warn("No chapters found when opening last chapter");
         setBookHtml("");
@@ -673,7 +678,6 @@ export default function CreateBook() {
 
   const hasFetchedBooks = useRef(false);
   useEffect(() => {
-    // Only initialize data loading when we have an API key
     if (!hasFetchedBooks.current && userApiKey) {
       hasFetchedBooks.current = true;
 
@@ -693,7 +697,7 @@ export default function CreateBook() {
 
       loadData();
     }
-  }, [userApiKey]); // Dependency on userApiKey
+  }, [userApiKey]);
 
   const focusPrompt = () => {
     setTimeout(() => {
@@ -707,7 +711,7 @@ export default function CreateBook() {
     let data = {
       id: rewriteid,
       chapter_id: activeChapterId,
-      user_id: userId, // ✅
+      user_id: userId,
     };
     let result = await fetch("/api/setchapter", {
       method: "POST",
@@ -725,7 +729,7 @@ export default function CreateBook() {
 
   function wrapContentWithDOMParser(content) {
     if (content.includes('class="row"') && content.includes('class="column"')) {
-      return content.trim(); // No further processing needed
+      return content.trim();
     }
 
     const parser = new DOMParser();
@@ -754,104 +758,222 @@ export default function CreateBook() {
     return tempDiv.innerHTML.trim();
   }
 
+  // BookCard Component using shadcn
+  const BookCard = ({
+    book,
+    handleReadBook,
+    isSelectMode,
+    isSelected,
+    onSelect,
+  }) => (
+    <Card
+      className={`w-64 h-40 cursor-pointer hover:shadow-lg transition-all duration-200 border-2 relative ${
+        isSelected ? "border-primary bg-primary/5" : "hover:border-primary/20"
+      }`}
+      onClick={() =>
+        isSelectMode ? onSelect(book.id) : handleReadBook(book.id)
+      }
+    >
+      {isSelectMode && (
+        <div className="absolute top-2 right-2 z-10">
+          <div
+            className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+              isSelected
+                ? "bg-primary border-primary"
+                : "bg-background border-muted-foreground hover:border-primary"
+            }`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect(book.id);
+            }}
+          >
+            {isSelected && (
+              <svg
+                className="w-3 h-3 text-primary-foreground"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            )}
+          </div>
+        </div>
+      )}
+
+      <CardHeader className="pb-2">
+        <div className="flex items-start gap-2">
+          <BookOpen className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
+          <div className="min-w-0 flex-1">
+            <CardTitle className="text-lg leading-tight line-clamp-2">
+              {book.title}
+            </CardTitle>
+          </div>
+        </div>
+      </CardHeader>
+      {book.tagline && (
+        <CardContent className="pt-0">
+          <CardDescription className="text-sm line-clamp-3">
+            {book.tagline}
+          </CardDescription>
+        </CardContent>
+      )}
+    </Card>
+  );
+
+  // BookList Component using shadcn
+  const BookList = ({ books, handleReadBook }) => (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 px-2">
+        <BookOpen className="w-5 h-5 text-primary" />
+        <h2 className="text-xl font-semibold">My Books</h2>
+      </div>
+      <ScrollArea className="h-[calc(100vh-120px)]">
+        <div className="space-y-2 pr-4">
+          {books.map((book) => (
+            <Card
+              key={book.id}
+              className="cursor-pointer hover:shadow-md transition-shadow duration-200 border hover:border-primary/30"
+              onClick={() => handleReadBook(book.id)}
+            >
+              <CardHeader className="p-4">
+                <CardTitle className="text-base leading-tight line-clamp-2">
+                  {book.title}
+                </CardTitle>
+                {book.tagline && (
+                  <CardDescription className="text-sm line-clamp-2">
+                    {book.tagline}
+                  </CardDescription>
+                )}
+              </CardHeader>
+            </Card>
+          ))}
+          {loading && (
+            <div className="flex justify-center py-4">
+              <Loader2 className="w-6 h-6 animate-spin" />
+            </div>
+          )}
+        </div>
+      </ScrollArea>
+    </div>
+  );
+
+  // ChapterList Component using shadcn
+  const ChapterList = ({
+    bookTitle,
+    chapters,
+    activeChapterId,
+    handleReadChapter,
+    credit,
+    cost,
+    showCredit,
+    showCost,
+    handleBookUpdated,
+  }) => (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 px-2">
+          <BookOpen className="w-5 h-5 text-primary" />
+          <h2 className="text-lg font-semibold line-clamp-2">{bookTitle}</h2>
+        </div>
+
+        {(showCredit || showCost) && (
+          <div className="px-2 space-y-1">
+            {showCost && (
+              <Badge variant="secondary" className="text-xs">
+                Cost: ${cost?.toFixed(4) || "0.0000"}
+              </Badge>
+            )}
+            {showCredit && (
+              <Badge variant="outline" className="text-xs">
+                Credits: {credit || 0}
+              </Badge>
+            )}
+          </div>
+        )}
+      </div>
+
+      <Separator />
+
+      <ScrollArea className="h-[calc(100vh-200px)]">
+        <div className="space-y-1 pr-4">
+          {chapters.map((chapter, index) => (
+            <Button
+              key={chapter.id}
+              variant={activeChapterId === chapter.id ? "default" : "ghost"}
+              className="w-full justify-start h-auto p-3 text-left"
+              onClick={() => handleReadChapter(chapter.id)}
+            >
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium line-clamp-2">
+                  {chapter.title}
+                </div>
+                {chapter.summary && (
+                  <div className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                    {chapter.summary}
+                  </div>
+                )}
+              </div>
+            </Button>
+          ))}
+        </div>
+      </ScrollArea>
+    </div>
+  );
+
   return (
     <>
       <Head>
         <title>My Books</title>
       </Head>
 
-      {/* API Key Manager - positioned at bottom left */}
       <ApiKeyManager onApiKeySet={setUserApiKey} position="bottom-left" />
 
-      {/* Show the app content once API key is set */}
       {userApiKey && (
         <>
           {(!ready || loading) && (
-            <div
-              className={`div-status flex justify-center items-center fixed inset-0 bg-white bg-opacity-10 text-lg z-10`}
-            >
-              <span className="loading-icon">
-                <svg
-                  style={{ marginTop: "2px" }}
-                  className="animate-spin h-8 w-8"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-              </span>
+            <div className="flex justify-center items-center fixed inset-0 bg-background/80 backdrop-blur-sm text-lg z-10">
+              <div className="flex items-center gap-2">
+                <Loader2 className="w-8 h-8 animate-spin" />
+                <span>Loading...</span>
+              </div>
             </div>
           )}
 
           {books.length === 0 && ready && (
-            <div
-              className={`flex justify-center items-center w-full min-h-screen`}
-            >
-              <div className="max-w-[1200px] w-full flex flex-row justify-center">
-                <div className="hidden md:flex flex-col justify-center p-0 lg:p-8">
-                  <Image
-                    src="/writing.png"
-                    width={550}
-                    height={550}
-                    alt="Create My Book"
-                  />
-                </div>
-                <div className="flex flex-col p-8 w-full sm:w-[490px] lg:w-[540px] xl:w-[590px] flex-none">
-                  <CreateBookFormInitial
-                    topicRef={topicRef}
-                    handleCreateBook={handleCreateBook}
-                    isGenerating={isGenerating}
-                    status={status}
-                  />
-                </div>
+            <div className="flex justify-center items-center w-full min-h-screen">
+              <div className="flex flex-col p-8 w-full max-w-2xl">
+                <CreateBookFormInitial
+                  topicRef={topicRef}
+                  handleCreateBook={handleCreateBook}
+                  isGenerating={isGenerating}
+                  status={status}
+                />
               </div>
             </div>
           )}
 
           {books.length > 0 && ready && (
-            <div
-              className={`relative flex h-full w-full overflow-hidden transition-colors z-0`}
-            >
-              {/* Book List */}
-              {!showChapterList && (
-                <div
-                  ref={scrollableSideRef}
-                  className={`flex-shrink-0 overflow-x-hidden w-80 h-screen p-4 bg-gray-100`}
-                >
-                  <BookList books={books} handleReadBook={handleReadBook} />
-                </div>
-              )}
-
-              {/* Chapter List */}
+            <div className="relative flex h-full w-full overflow-hidden transition-colors z-0">
+              {/* Chapter List Sidebar - only show when viewing a specific book */}
               {showChapterList && (
-                <div
-                  className={`flex-shrink-0 overflow-x-hidden w-80 h-screen p-4 bg-gray-100`}
-                >
-                  <button
-                    className="w-full text-left text-sm rounded-sm px-4 py-2 hover:bg-gray-200 focus:outline-none"
+                <div className="flex-shrink-0 overflow-x-hidden w-80 h-screen p-4 bg-muted/30 border-r">
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start mb-4 h-auto p-2"
                     onClick={async () => {
                       await stopEditing();
                       setShowChapterList(false);
-
                       localStorage.removeItem("activeBookId");
                       localStorage.removeItem("activeChapterId");
                     }}
                   >
-                    &larr; Back
-                  </button>
+                    <ChevronLeft className="w-4 h-4 mr-2" />
+                    Back to Books
+                  </Button>
 
                   <ChapterList
                     bookTitle={title}
@@ -865,42 +987,95 @@ export default function CreateBook() {
                     handleBookUpdated={handleBookUpdated}
                   />
 
-                  <PrintBookButton chapters={chapters} title={title} />
+                  <div className="mt-4 space-y-2">
+                    <PrintBookButton chapters={chapters} title={title} />
 
-                  {!isEditing && (
-                    <div className="mt-4">
+                    {!isEditing && (
                       <DeleteBookButton
                         handleDeleteBook={handleDeleteBook}
                         selectedBookId={selectedBookId}
                       />
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               )}
 
+              {/* Main Content */}
               <div className="flex-1">
-                {/* Book Cards */}
+                {/* Book Cards Grid */}
                 {!showChapterList && !isGenerating && !bookLoading && (
-                  <>
-                    <div
-                      ref={scrollableMainRef}
-                      className="w-full overflow-y-auto h-screen p-12"
-                    >
-                      <h1 className="text-4xl">My Books</h1>
-                      <div className="mt-12 flex flex-wrap gap-10">
+                  <ScrollArea className="w-full h-screen">
+                    <div className="p-12">
+                      <div className="flex items-center justify-between mb-8">
+                        <h1 className="text-4xl font-bold">My Books</h1>
+
+                        <div className="flex items-center gap-3">
+                          {!isSelectMode ? (
+                            <Button
+                              variant="outline"
+                              onClick={() => setIsSelectMode(true)}
+                              disabled={books.length === 0}
+                            >
+                              Select
+                            </Button>
+                          ) : (
+                            <>
+                              <div className="text-sm text-muted-foreground">
+                                {selectedBooks.length} of {books.length}{" "}
+                                selected
+                              </div>
+
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleSelectAll}
+                              >
+                                {selectedBooks.length === books.length
+                                  ? "Deselect All"
+                                  : "Select All"}
+                              </Button>
+
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={handleDeleteSelectedBooks}
+                                disabled={selectedBooks.length === 0}
+                              >
+                                Delete ({selectedBooks.length})
+                              </Button>
+
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setIsSelectMode(false);
+                                  setSelectedBooks([]);
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-6">
                         {books.map((book) => (
                           <BookCard
                             key={book.id}
                             book={book}
                             handleReadBook={handleReadBook}
+                            isSelectMode={isSelectMode}
+                            isSelected={selectedBooks.includes(book.id)}
+                            onSelect={handleSelectBook}
                           />
                         ))}
                       </div>
                     </div>
-                  </>
+                  </ScrollArea>
                 )}
 
-                {/* Content */}
+                {/* Chapter Content */}
                 {showChapterList && !isGenerating && (
                   <div
                     className="w-full overflow-y-auto h-screen"
@@ -912,7 +1087,7 @@ export default function CreateBook() {
                           <>
                             <div
                               className={`max-w-3xl mx-auto w-full relative px-[1rem] mt-24 ${
-                                activeChapterId === chapters[0].id
+                                activeChapterId === chapters[0]?.id
                                   ? "text-6xl font-semibold leading-none"
                                   : "text-sm"
                               }`}
@@ -935,69 +1110,75 @@ export default function CreateBook() {
 
                         {!isDemo && !bookHtml && (
                           <div
-                            className={`container max-w-3xl mx-auto w-full relative`}
+                            className="container max-w-3xl mx-auto w-full relative"
                             style={{
                               marginTop: "156px",
                               marginBottom: "500px",
                             }}
                           >
-                            <div className="border border-2 p-14 py-8 border-gray-900 rounded-xl">
-                              <p className="text-2xl font-semibold">
+                            <Alert>
+                              <BookOpen className="h-4 w-4" />
+                              <AlertDescription className="text-lg font-semibold">
                                 This is a sample (preview) book.
-                              </p>
-                              <p className="text-base">
+                              </AlertDescription>
+                              <AlertDescription>
                                 Only the first few chapters have been generated
                                 in this sample. To generate the full book,
                                 please use the generate form.
-                              </p>
-                            </div>
+                              </AlertDescription>
+                            </Alert>
                           </div>
                         )}
 
                         {isDemo && !bookHtml && (
                           <div
-                            className={`container max-w-3xl mx-auto w-full relative`}
+                            className="container max-w-3xl mx-auto w-full relative"
                             style={{
                               marginTop: "156px",
                               marginBottom: "500px",
                             }}
                           >
-                            <div className="border border-2 p-14 py-8 border-gray-900 rounded-xl">
-                              <p className="text-2xl font-semibold">
+                            <Alert>
+                              <BookOpen className="h-4 w-4" />
+                              <AlertDescription className="text-lg font-semibold">
                                 Demo Info
-                              </p>
-                              <p className="text-base">
+                              </AlertDescription>
+                              <AlertDescription>
                                 This demo allows you to generate only the first
                                 few chapters. The full version lets you generate
                                 the entire book.
-                              </p>
-                            </div>
+                              </AlertDescription>
+                            </Alert>
                           </div>
                         )}
                       </>
                     )}
 
+                    {/* ContentBuilder editing area - keep this untouched */}
                     {isEditing && (
                       <div
-                        className={`container max-w-3xl mx-auto w-full relative`}
+                        className="container max-w-3xl mx-auto w-full relative"
                         style={{ marginTop: "156px", marginBottom: "500px" }}
                       ></div>
                     )}
                   </div>
                 )}
 
-                {/* Status */}
+                {/* Loading Status */}
                 {isGenerating && (
                   <div
-                    className={`div-status flex justify-center items-center fixed inset-0 bg-gray-600 bg-opacity-10 text-lg ${
+                    className={`flex justify-center items-center fixed inset-0 bg-background/80 backdrop-blur-sm text-lg ${
                       isRewriting ? "z-10" : ""
                     }`}
                   >
-                    {status}
+                    <div className="flex items-center gap-3 bg-card p-6 rounded-lg border shadow-lg">
+                      <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                      <span className="text-foreground">{status}</span>
+                    </div>
                   </div>
                 )}
 
-                {/* Add Book */}
+                {/* Add Book Component - keep original functionality */}
                 {!isEditing && (
                   <AddBook
                     topicRef={topicRef}
@@ -1007,27 +1188,23 @@ export default function CreateBook() {
                   />
                 )}
 
-                {/* Edit & Rewrite Chapter */}
+                {/* Edit & Rewrite Chapter Controls */}
                 {showChapterList && activeChapterId && !isEditing && (
-                  <PopoverGroup
-                    className={`fixed top-6 right-7 text-sm rounded-full bg-gray-200 z-20 flex items-center`}
-                  >
+                  <div className="fixed top-6 right-7 z-20 flex items-center gap-2">
                     {((bookHtml && !isDemo) ||
                       (isDemo && bookHtml && activeChapterIndex <= limit)) && (
                       <>
-                        <button
-                          className={`flex items-center p-3 px-4 rounded-full mr-2
-                                        focus:outline-none`}
-                          aria-label="Edit"
-                          title="Edit"
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="rounded-full"
                           onClick={() => startEditing()}
                         >
-                          <>
-                            <PencilIcon className="size-4 mr-2" />
-                            Edit
-                          </>
-                        </button>
+                          <Edit3 className="w-4 h-4 mr-2" />
+                          Edit
+                        </Button>
 
+                        {/* Keep original popover components for rewrite and versions */}
                         <RewriteChapterPopover
                           rewritePrompt={rewritePrompt}
                           setRewritePrompt={setRewritePrompt}
@@ -1045,28 +1222,22 @@ export default function CreateBook() {
                         />
                       </>
                     )}
-                  </PopoverGroup>
+                  </div>
                 )}
 
-                {/* Quit Editing */}
+                {/* Save/Back Button when editing */}
                 {isEditing && (
-                  <>
-                    <div
-                      className={`fixed top-6 right-6 text-sm rounded-full bg-gray-200 z-20 flex items-center`}
+                  <div className="fixed top-6 right-6 z-20">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="rounded-full"
+                      onClick={() => stopEditing()}
                     >
-                      <button
-                        className={`flex items-center focus:outline-none p-2 px-4`}
-                        aria-label="Save"
-                        title="Save"
-                        onClick={() => stopEditing()}
-                      >
-                        <>
-                          <ArrowUturnLeftIcon className="size-4 mr-2" />
-                          Back
-                        </>
-                      </button>
-                    </div>
-                  </>
+                      <ArrowUturnLeftIcon className="w-4 h-4 mr-2" />
+                      Save & Back
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>
