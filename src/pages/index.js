@@ -1,5 +1,5 @@
+import { Hero78 } from "@/components/hero78";
 import Head from "next/head";
-import { Hero78 } from "@/components/Hero78";
 
 export default function IndexPage() {
   return (
