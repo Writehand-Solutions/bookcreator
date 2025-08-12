@@ -5,10 +5,10 @@ export default function IndexPage() {
   return (
     <>
       <Head>
-        <title>BookCreator AI - Create Amazing Books with AI</title>
+        <title>AI Book Builder - Powered by Productised AI</title>
         <meta
           name="description"
-          content="Transform your ideas into professional books using advanced AI technology. Create, edit, and publish books effortlessly."
+          content="Transform your ideas into books using advanced AI technology. Create, edit, and publish books effortlessly. Powered by Productised AI."
         />
       </Head>
 
