@@ -268,7 +268,7 @@ const CreateBookFormInitial = ({
         </Select>
       </div>
 
-      <div className="space-y-3 pt-2">
+            <div className="space-y-3 pt-2">
         <Button
           className="w-full text-lg py-6"
           onClick={async () => {
@@ -287,25 +287,28 @@ const CreateBookFormInitial = ({
           )}
         </Button>
 
-<div className="text-xs text-muted-foreground text-center">
-  By creating this book, you agree to productised.ai{" "}
-  <a
-    href="https://www.productised.ai/ai-book-policy"
-    target="_blank"
-    rel="noopener noreferrer"
-    className="text-primary hover:underline"
-  >
-    terms and conditions
-  </a>
-  .
-</div>
-
-      {isGenerating && (
-        <div className="flex items-center justify-center gap-2 pt-4 border-t">
-          <Loader2 className="w-5 h-5 animate-spin text-primary" />
-          <div className="font-semibold text-xl text-center">{status}</div>
+        {/* Terms text (static, no wrapper) */}
+        <div className="text-xs text-muted-foreground text-center">
+          By creating this book, you agree to productised.ai{" "}
+          <a
+            href="https://www.productised.ai/ai-book-policy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline"
+          >
+            terms and conditions
+          </a>
+          .
         </div>
-      )}
+
+        {/* Keep this exactly as-is */}
+        {isGenerating && (
+          <div className="flex items-center justify-center gap-2 pt-4 border-t">
+            <Loader2 className="w-5 h-5 animate-spin text-primary" />
+            <div className="font-semibold text-xl text-center">{status}</div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
