@@ -6,44 +6,30 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 
 const SWIPEONE_WEBHOOK =
   "https://integrations-api.swipeone.com/webhooks/apps/generic-webhooks/68c0f7862bed62f785822d11";
 
-export default function ApiKeyManager({
-  onApiKeySet,
-  position = "top-left",
-}: {
-  onApiKeySet: (key: string) => void;
-  position?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
-}) {
+export default function ApiKeyManager({ onApiKeySet, position = "top-left" }) {
   const [email, setEmail] = useState("");
-  const [emailValid, setEmailValid] = useState<boolean | null>(null);
+  const [emailValid, setEmailValid] = useState(null);
 
   const [apiKey, setApiKey] = useState("");
   const [showKey, setShowKey] = useState(false);
-  const [isValid, setIsValid] = useState<boolean | null>(null);
+  const [isValid, setIsValid] = useState(null);
   const [isValidating, setIsValidating] = useState(false);
 
   useEffect(() => {
-    // Prefill from localStorage (optional convenience)
-    const savedApiKey = localStorage.getItem("openai_api_key");
-    const savedEmail = localStorage.getItem("openai_user_email");
+    const savedApiKey = typeof window !== "undefined" ? localStorage.getItem("openai_api_key") : null;
+    const savedEmail = typeof window !== "undefined" ? localStorage.getItem("openai_user_email") : null;
 
     if (savedEmail) {
       setEmail(savedEmail);
@@ -52,15 +38,14 @@ export default function ApiKeyManager({
 
     if (savedApiKey) {
       setApiKey(savedApiKey);
-      setIsValid(true); // Assume it's valid if previously saved
-      onApiKeySet(savedApiKey);
+      setIsValid(true); // Assume it's valid if it was saved before
+      if (onApiKeySet) onApiKeySet(savedApiKey);
     }
   }, [onApiKeySet]);
 
-  const isValidEmail = (value: string) =>
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
-  const sendEmailToSwipeOne = async (emailToSend: string) => {
+  const sendEmailToSwipeOne = async (emailToSend) => {
     try {
       await fetch(SWIPEONE_WEBHOOK, {
         method: "POST",
@@ -72,12 +57,12 @@ export default function ApiKeyManager({
         }),
       });
     } catch (err) {
-      // Non-blocking: log but don't stop the flow
+      // Do not block UX if webhook fails
       console.error("SwipeOne webhook failed:", err);
     }
   };
 
-  const validateApiKey = async (key: string) => {
+  const validateApiKey = async (key) => {
     if (!key || key.length < 20) {
       setIsValid(false);
       return false;
@@ -86,7 +71,6 @@ export default function ApiKeyManager({
     setIsValidating(true);
 
     try {
-      // Test the API key with a simple request
       const response = await fetch("/api/sendcommand", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -104,8 +88,10 @@ export default function ApiKeyManager({
 
       if (response.ok && !data.error) {
         setIsValid(true);
-        localStorage.setItem("openai_api_key", key);
-        onApiKeySet(key);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("openai_api_key", key);
+        }
+        if (onApiKeySet) onApiKeySet(key);
         return true;
       } else {
         setIsValid(false);
@@ -121,14 +107,13 @@ export default function ApiKeyManager({
   };
 
   const handleSaveApiKey = async () => {
-    // Require an email first
+    // Require a valid email first
     const ok = isValidEmail(email);
     setEmailValid(ok);
-
     if (!ok) return;
 
-    // Persist + send to SwipeOne (non-blocking for UX)
-    localStorage.setItem("openai_user_email", email);
+    // Persist + send to SwipeOne (non-blocking)
+    if (typeof window !== "undefined") localStorage.setItem("openai_user_email", email);
     sendEmailToSwipeOne(email);
 
     // Then validate and save API key
@@ -138,11 +123,12 @@ export default function ApiKeyManager({
   const handleRemoveApiKey = () => {
     setApiKey("");
     setIsValid(null);
-    localStorage.removeItem("openai_api_key");
-    onApiKeySet("");
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("openai_api_key");
+    }
+    if (onApiKeySet) onApiKeySet("");
   };
 
-  // Get position classes based on position prop
   const getPositionClasses = () => {
     switch (position) {
       case "bottom-left":
@@ -157,7 +143,7 @@ export default function ApiKeyManager({
     }
   };
 
-  // If API key is valid, show a minimal indicator
+  // When valid, show compact badge
   if (isValid) {
     return (
       <div className={getPositionClasses()}>
@@ -181,7 +167,7 @@ export default function ApiKeyManager({
     );
   }
 
-  // If no valid API key, show the input form as a modal dialog
+  // Otherwise show modal dialog
   return (
     <Dialog open={!isValid} onOpenChange={() => {}}>
       <DialogContent
@@ -200,7 +186,7 @@ export default function ApiKeyManager({
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* 1) Email address (required & sent to SwipeOne) */}
+          {/* Email */}
           <div className="space-y-2">
             <Label htmlFor="email">Email address</Label>
             <Input
@@ -209,8 +195,9 @@ export default function ApiKeyManager({
               placeholder="you@company.com"
               value={email}
               onChange={(e) => {
-                setEmail(e.target.value);
-                if (emailValid !== null) setEmailValid(isValidEmail(e.target.value));
+                const val = e.target.value;
+                setEmail(val);
+                if (emailValid !== null) setEmailValid(isValidEmail(val));
               }}
               className={emailValid === false ? "border-destructive" : ""}
               onKeyDown={(e) => {
@@ -222,7 +209,7 @@ export default function ApiKeyManager({
             )}
           </div>
 
-          {/* 2) API Key */}
+          {/* API Key */}
           <div className="space-y-2">
             <Label htmlFor="apikey">API Key</Label>
             <div className="relative">
@@ -275,7 +262,7 @@ export default function ApiKeyManager({
 
           <div className="text-sm text-muted-foreground">
             <p>
-              Don't have an API key?{" "}
+              Don&apos;t have an API key?{" "}
               <a
                 href="https://platform.openai.com/api-keys"
                 target="_blank"
