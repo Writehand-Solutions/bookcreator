@@ -931,6 +931,26 @@ export default function CreateBook() {
       </Head>
 
       <ApiKeyManager onApiKeySet={setUserApiKey} position="bottom-left" />
+    {/* Powered by + logo (bottom-left, above API Key badge) */}
+{userApiKey && (
+  <div className="fixed left-4 bottom-20 z-40">
+    <div className="text-[11px] text-muted-foreground mb-1">Powered by</div>
+    <a
+      href="https://www.productised.ai/"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center"
+      aria-label="productised.ai"
+    >
+      {/* filename contains spaces → URL-encoded */}
+      <img
+        src="/full%20logo%20no%20back.png"
+        alt="productised."
+        className="h-4 md:h-5 w-auto max-w-[120px] object-contain"
+      />
+    </a>
+  </div>
+)}
 
       {userApiKey && (
         <>
