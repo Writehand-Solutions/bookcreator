@@ -170,9 +170,9 @@ const CreateBookForm = ({
   };
 
   const exampleTopics = [
-    "Authentic & traditional recipes from world cuisines.",
-    "How to build a modern JavaScript library from scratch.",
-    "A time traveler's love story in a thrilling adventure.",
+    "Proven frameworks for small businesses to thrive online.",
+    "Essential strategies for building a personal brand with impact.",
+    "Proven frameworks for small businesses to thrive online.",
   ];
 
   return (
@@ -251,7 +251,7 @@ const CreateBookForm = ({
 
           <div className="space-y-2">
             <Label htmlFor="keypoints" className="text-base font-medium">
-              What you want to include in the book (optional):
+              What you want to include in the book (recommended):
             </Label>
             <Textarea
               id="keypoints"
