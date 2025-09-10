@@ -287,7 +287,7 @@ const CreateBookFormInitial = ({
           )}
         </Button>
 
-      <div className="text-xs text-muted-foreground text-center">
+<div className="text-xs text-muted-foreground text-center">
   By creating this book, you agree to productised.ai{" "}
   <a
     href="https://www.productised.ai/ai-book-policy"
