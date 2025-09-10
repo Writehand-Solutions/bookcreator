@@ -19,7 +19,6 @@ const Hero78 = () => {
               Plan, generate, and polish chapters—then export your book in minutes.
             </p>
 
-            {/* Primary CTA only */}
             <div className="mt-8 flex items-center gap-3">
               <Button asChild size="lg" className="pl-4 pr-2.5">
                 <Link href="/books">
@@ -29,7 +28,6 @@ const Hero78 = () => {
               </Button>
             </div>
 
-            {/* Powered by branding */}
             <p className="text-muted-foreground mt-10 text-sm">Proudly powered by</p>
             <div className="mt-3">
               <a
@@ -54,13 +52,12 @@ const Hero78 = () => {
       </div>
 
       {/* BIG preview (absolute so it can extend beyond grid) */}
-      <div className="perspective-near md:absolute md:-right-6 md:bottom-16 md:left-1/2 md:top-28">
+      <div className="perspective-near md:absolute md:-right-6 md:bottom-16 md:left-[56%] md:top-28">
         <div className="before:border-foreground/5 before:bg-foreground/5 relative mx-auto h-full max-w-[60rem] scale-[1.08] before:absolute before:-inset-x-4 before:bottom-7 before:top-0 before:skew-x-6 before:rounded-[calc(var(--radius)+1rem)] before:border">
           <div className="bg-background rounded-(--radius) shadow-foreground/10 ring-foreground/5 relative h-full -translate-y-12 skew-x-6 overflow-hidden border border-transparent shadow-md ring-1">
-            {/* keep aspect so it stays large + responsive */}
             <div className="relative aspect-[16/10] w-full">
               <img
-                src="https://res.cloudinary.com/dohqjvu9k/image/upload/v1755171585/oxy_jjuhdv.webp"
+                src="/bookhome.png"
                 alt="App preview"
                 className="absolute inset-0 h-full w-full object-cover object-left-top"
               />
@@ -76,4 +73,3 @@ const Hero78 = () => {
 };
 
 export { Hero78 };
-
