@@ -76,7 +76,7 @@ const CreateBookForm = ({ topicRef, handleCreateBook, isGenerating, close, statu
                             setIsTouched(true);
                         }}
                         className="w-40 rounded-xl border border-gray-300 p-3 text-sm shadow-xs transition hover:bg-gray-50">
-                        How to build a modern JavaScript library from scratch.
+                        Proven frameworks for small businesses to thrive online.
                     </button>
                     <button 
                         onClick={(e) => {
@@ -84,7 +84,7 @@ const CreateBookForm = ({ topicRef, handleCreateBook, isGenerating, close, statu
                             setIsTouched(true);
                         }}
                         className="w-36 rounded-2xl border border-gray-300 p-3 text-sm shadow-xs transition hover:bg-gray-50">
-                            Authentic and traditional recipes from world cuisines.
+                            Essential strategies for building a personal brand with impact.
                     </button>
                     <button 
                         onClick={(e) => {
@@ -92,7 +92,7 @@ const CreateBookForm = ({ topicRef, handleCreateBook, isGenerating, close, statu
                             setIsTouched(true);
                         }}
                         className="w-48 rounded-2xl border border-gray-300 p-3 text-sm shadow-xs transition hover:bg-gray-50">
-                        A love story of a time traveler who embarks on a thrilling historical adventure.
+                        Authentic habits that boost productivity and reduce burnout.
                     </button>
                 </div>
                 <label htmlFor="inpTopic" className="text-base font-medium text-gray-700 mb-1">Topic:</label>
