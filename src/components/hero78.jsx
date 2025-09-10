@@ -53,15 +53,14 @@ const Hero78 = () => {
         </div>
       </div>
 
-      {/* BIG layered preview (absolute so it can extend beyond the grid) */}
-      <div className="pointer-events-none md:absolute md:top-20 md:bottom-8 md:left-[57%] md:right-[-8rem]">
+      {/* BIG layered preview (absolute; fills available height) */}
+      <div className="pointer-events-none md:absolute md:inset-y-20 md:left-[58%] md:right-[-6rem]">
         <div className="relative h-full">
           {/* soft shadow slab behind */}
-          <div className="absolute left-[-6%] top-2 h-[95%] w-[108%] -rotate-2 rounded-[28px] bg-foreground/[0.04] ring-1 ring-foreground/10 shadow-md" />
+          <div className="absolute left-[-5%] top-3 h-full w-[110%] -rotate-2 rounded-[24px] bg-foreground/[0.04] ring-1 ring-foreground/10 shadow-md" />
           {/* main card */}
-          <div className="relative ml-auto h-full w-[115%] max-w-none -translate-y-6 skew-x-6 overflow-hidden rounded-[28px] border border-foreground/10 bg-background shadow-lg ring-1 ring-foreground/10">
-            {/* set explicit heights so it fills “the whole thing” */}
-            <div className="relative h-full min-h-[26rem] md:min-h-[32rem] lg:min-h-[36rem] xl:min-h-[40rem]">
+          <div className="relative ml-auto h-full w-[110%] max-w-none skew-x-6 overflow-hidden rounded-[24px] border border-foreground/10 bg-background shadow-lg ring-1 ring-foreground/10">
+            <div className="relative h-full">
               <img
                 src="/bookhome.png"
                 alt="App preview"
