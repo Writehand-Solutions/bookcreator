@@ -28,6 +28,19 @@ const CreateBookFormInitial = ({
   const [languages, setLanguages] = useState([]);
   const [isTouched, setIsTouched] = useState(false);
 
+  // Full-page background (applies to <body>)
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const prev = {
+      background: document.body.style.background,
+    };
+    document.body.style.background =
+      "radial-gradient(circle at 50% 50%,#fffcea, #fffef4, #ffffff)";
+    return () => {
+      document.body.style.background = prev.background || "";
+    };
+  }, []);
+
   useEffect(() => {
     // Predefined list of ISO 639-1 language codes
     const identifiers = [
@@ -67,23 +80,16 @@ const CreateBookFormInitial = ({
   ];
 
   return (
-    <div
-      className="min-h-screen w-full"
-      style={{
-        background:
-          "radial-gradient(circle at 50% 50%,#fffcea, #fffef4, #ffffff)",
-      }}
-    >
+    <div className="min-h-screen w-full">
       <div className="space-y-4 max-w-full">
-        {/* 1 & 2) Linked logo above title */}
-        <div className="pt-4 flex justify-center">
+        {/* Logo aligned left above the header */}
+        <div className="pt-4">
           <a
             href="https://www.productised.ai/"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="productised.ai"
           >
-            {/* filename has spaces; URL-encode them */}
             <img
               src="/full%20logo%20no%20back.png"
               alt="productised.ai"
