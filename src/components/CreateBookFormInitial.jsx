@@ -169,7 +169,7 @@ const CreateBookFormInitial = ({
   };
 
   const exampleTopics = [
-    "Proven frameworks for small businesses to thrive online.",
+    "Authentic habits that boost productivity and reduce burnout.",
     "Essential strategies for building a personal brand with impact.",
     "Proven frameworks for small businesses to thrive online.",
   ];
