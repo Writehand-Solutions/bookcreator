@@ -169,9 +169,9 @@ const CreateBookFormInitial = ({
   };
 
   const exampleTopics = [
-    "Authentic & traditional recipes from world cuisines.",
-    "How to build a modern JavaScript library from scratch.",
-    "A time traveler's love story in a thrilling adventure.",
+    "Proven frameworks for small businesses to thrive online.",
+    "Essential strategies for building a personal brand with impact.",
+    "Proven frameworks for small businesses to thrive online.",
   ];
 
   return (
@@ -240,7 +240,7 @@ const CreateBookFormInitial = ({
 
       <div className="space-y-2">
         <Label htmlFor="initial-keypoints" className="text-base font-medium">
-          What you want to include in the book (optional):
+          What you want to include in the book (recommended):
         </Label>
         <Textarea
           id="initial-keypoints"
@@ -287,10 +287,18 @@ const CreateBookFormInitial = ({
           )}
         </Button>
 
-        <div className="text-xs text-muted-foreground text-center">
-          AI can make mistakes. Check important info.
-        </div>
-      </div>
+      <div className="text-xs text-muted-foreground text-center">
+  By creating this book, you agree to productised.ai{" "}
+  <a
+    href="https://www.productised.ai/ai-book-policy"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="text-primary hover:underline"
+  >
+    terms and conditions
+  </a>
+  .
+</div>
 
       {isGenerating && (
         <div className="flex items-center justify-center gap-2 pt-4 border-t">
