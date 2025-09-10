@@ -8,7 +8,7 @@ const Hero78 = () => {
     <section className="relative overflow-hidden bg-background">
       {/* content container */}
       <div className="relative z-10 mx-auto w-full max-w-6xl px-6 lg:px-12">
-        <div className="grid grid-cols-1 gap-12 pb-24 pt-24 md:grid-cols-2 md:pt-36 lg:pt-44">
+        <div className="grid grid-cols-1 gap-12 pb-24 pt-24 md:grid-cols-2 md:pt-32 lg:pt-40">
           {/* left column */}
           <div className="md:max-w-xl">
             <h1 className="text-balance text-5xl font-semibold leading-tight tracking-tight md:text-6xl">
@@ -19,7 +19,8 @@ const Hero78 = () => {
               Plan, generate, and polish chapters—then export your book in minutes.
             </p>
 
-            <div className="mt-8 flex items-center gap-3">
+            {/* Primary CTA only */}
+            <div className="mt-8">
               <Button asChild size="lg" className="pl-4 pr-2.5">
                 <Link href="/books">
                   <span className="text-nowrap">Get Started</span>
@@ -28,6 +29,7 @@ const Hero78 = () => {
               </Button>
             </div>
 
+            {/* Powered by branding */}
             <p className="text-muted-foreground mt-10 text-sm">Proudly powered by</p>
             <div className="mt-3">
               <a
@@ -51,11 +53,15 @@ const Hero78 = () => {
         </div>
       </div>
 
-      {/* BIG preview (absolute so it can extend beyond grid) */}
-      <div className="perspective-near md:absolute md:-right-6 md:bottom-16 md:left-[56%] md:top-28">
-        <div className="before:border-foreground/5 before:bg-foreground/5 relative mx-auto h-full max-w-[60rem] scale-[1.08] before:absolute before:-inset-x-4 before:bottom-7 before:top-0 before:skew-x-6 before:rounded-[calc(var(--radius)+1rem)] before:border">
-          <div className="bg-background rounded-(--radius) shadow-foreground/10 ring-foreground/5 relative h-full -translate-y-12 skew-x-6 overflow-hidden border border-transparent shadow-md ring-1">
-            <div className="relative aspect-[16/10] w-full">
+      {/* BIG layered preview (absolute so it can extend beyond the grid) */}
+      <div className="pointer-events-none md:absolute md:top-20 md:bottom-8 md:left-[57%] md:right-[-8rem]">
+        <div className="relative h-full">
+          {/* soft shadow slab behind */}
+          <div className="absolute left-[-6%] top-2 h-[95%] w-[108%] -rotate-2 rounded-[28px] bg-foreground/[0.04] ring-1 ring-foreground/10 shadow-md" />
+          {/* main card */}
+          <div className="relative ml-auto h-full w-[115%] max-w-none -translate-y-6 skew-x-6 overflow-hidden rounded-[28px] border border-foreground/10 bg-background shadow-lg ring-1 ring-foreground/10">
+            {/* set explicit heights so it fills “the whole thing” */}
+            <div className="relative h-full min-h-[26rem] md:min-h-[32rem] lg:min-h-[36rem] xl:min-h-[40rem]">
               <img
                 src="/bookhome.png"
                 alt="App preview"
@@ -73,3 +79,4 @@ const Hero78 = () => {
 };
 
 export { Hero78 };
+
