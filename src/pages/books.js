@@ -976,27 +976,46 @@ export default function CreateBook() {
                   </Button>
 
                   <ChapterList
-                    bookTitle={title}
-                    chapters={chapters}
-                    activeChapterId={activeChapterId}
-                    handleReadChapter={handleReadChapter}
-                    credit={book.credit}
-                    cost={book.cost}
-                    showCredit={showCredit}
-                    showCost={showCost}
-                    handleBookUpdated={handleBookUpdated}
-                  />
+  bookTitle={title}
+  chapters={chapters}
+  activeChapterId={activeChapterId}
+  handleReadChapter={handleReadChapter}
+  credit={book.credit}
+  cost={book.cost}
+  showCredit={showCredit}
+  showCost={showCost}
+  handleBookUpdated={handleBookUpdated}
+/>
 
-                  <div className="mt-4 space-y-2">
-                    <PrintBookButton chapters={chapters} title={title} />
+{/* Powered by + logo */}
+<div className="mt-6 px-2">
+  <div className="text-[11px] text-muted-foreground mb-1">Powered by</div>
+  <a
+    href="https://www.productised.ai/"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="inline-flex"
+    aria-label="productised.ai"
+  >
+    {/* use URL-encoded path since the filename has spaces */}
+    <img
+      src="/full%20logo%20no%20back.png"
+      alt="productised."
+      className="h-5 w-auto"
+    />
+  </a>
+</div>
 
-                    {!isEditing && (
-                      <DeleteBookButton
-                        handleDeleteBook={handleDeleteBook}
-                        selectedBookId={selectedBookId}
-                      />
-                    )}
-                  </div>
+<div className="mt-4 space-y-2">
+  <PrintBookButton chapters={chapters} title={title} />
+
+  {!isEditing && (
+    <DeleteBookButton
+      handleDeleteBook={handleDeleteBook}
+      selectedBookId={selectedBookId}
+    />
+  )}
+</div>
                 </div>
               )}
 
