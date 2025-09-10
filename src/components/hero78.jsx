@@ -12,7 +12,7 @@ const Hero78 = () => {
           {/* left column */}
           <div className="md:max-w-xl">
             <h1 className="text-balance text-5xl font-semibold leading-tight tracking-tight md:text-6xl">
-              Create Amazing Books with AI
+              Create Long-form Books with AI
             </h1>
 
             <p className="text-muted-foreground mt-5 max-w-xl text-lg">
